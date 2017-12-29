@@ -410,7 +410,7 @@ maybe_promote_account(Context) ->
             lager:info("account ~s is the first, promoting it to sysadmin", [AccountId]),
             'ok' = promote_account(AccountId),
             'ok' = allow_account_number_additions(AccountId),
-            'ok' = whs_account_conversion:force_promote(AccountId),
+            'ok' = kz_services_reseller:force_promote(AccountId),
             'ok' = update_system_config(AccountId),
             {'ok', Context};
         _Else ->

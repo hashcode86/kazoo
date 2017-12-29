@@ -1,0 +1,8 @@
+{application,braintree,
+             [{applications,[]},
+              {description,"Integration with the Braintree service"},
+              {env,[{is_kazoo_app,true}]},
+              {mod,{braintree_app,[]}},
+              {modules,[]},
+              {registered,[braintree_sup]},
+              {vsn,"4.0.0"}]}.
