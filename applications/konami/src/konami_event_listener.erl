@@ -213,6 +213,14 @@ handle_call_event(JObj, _Props, <<"CHANNEL_DESTROY">> = Event) ->
     CallId = kz_call_event:call_id(JObj),
     _ = relay_to_pids(CallId, JObj),
     _ = relay_to_fsms(CallId, Event, JObj),
+    OriginationCallId = kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, JObj),
+    case OriginationCallId of
+        'undefined' -> lager:debug("no need relaying ~p to callevt exchange", [CallId]);
+        Value ->
+            lager:debug("thangdd8 fix 004 - GSV nhan cuoc goi transfer, sau khi ket thuc, trang thai cua GSV khong tro ve ready (do ban tin hangup dang gui theo routing topic la Origination-Call-ID)"),
+            lager:debug("need relaying CHANNEL_DESTROY of ~p to callevt exchange, because OriginationCallId is ~p ", [CallId, Value]),
+            kapi_call:publish_event(kz_json:delete_key(<<"Origination-Call-ID">>, JObj))
+    end,
     rm_call_binding(CallId);
 handle_call_event(JObj, _Props, Event) ->
     CallId = kz_call_event:call_id(JObj),
