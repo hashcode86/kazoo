@@ -25,6 +25,7 @@
 -export([update/3
         ,updates/2
         ,cleanup_old_channels/0, cleanup_old_channels/1
+        ,cleanup_channel_by_uuid/1
         ,max_channel_uptime/0
         ,set_max_channel_uptime/1, set_max_channel_uptime/2
         ]).
@@ -867,6 +868,26 @@ cleanup_old_channels(MaxAge) ->
             N = length(OldChannels),
             lager:debug("~p channels over ~p seconds old", [N, MaxAge]),
             hangup_old_channels(OldChannels),
+            N
+    end.
+
+-spec cleanup_channel_by_uuid(kz_term:ne_binary()) -> non_neg_integer().
+cleanup_channel_by_uuid(UUID) ->
+    MatchSpec = [{#channel{uuid='$1'
+                          ,node='$2'
+                          ,timestamp='$3'
+                          ,handling_locally='true'
+                          ,_ = '_'
+                          }
+                 ,[{'=:=', '$1', UUID}]
+                 ,[['$1', '$2', '$3']]
+                 }],
+    case ets:select(?CHANNELS_TBL, MatchSpec) of
+        [] -> 0;
+        MatchChannels ->
+            N = length(MatchChannels),
+            lager:debug("~p channels over uuid ~p", [N, UUID]),
+            hangup_old_channels(MatchChannels),
             N
     end.
 
