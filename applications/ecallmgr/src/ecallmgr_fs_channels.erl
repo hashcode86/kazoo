@@ -873,8 +873,8 @@ cleanup_old_channels(MaxAge) ->
 
 -spec cleanup_channel_by_uuid(kz_term:ne_binary()) -> non_neg_integer().
 cleanup_channel_by_uuid(UUID) ->
-    lager:info("1filter channels by uuid: ~p", [UUID]),
-    NoOlderThan = kz_time:now_s() - 5,
+    lager:info("2filter channels by uuid: ~p", [UUID]),
+    NoOlderThan = kz_time:now_s() - 3,
 
     MatchSpec = [{#channel{uuid = '$1'
         , node = '$2'
@@ -882,16 +882,15 @@ cleanup_channel_by_uuid(UUID) ->
         , handling_locally = 'true'
         , _ = '_'
     }
-%%        , [{'=:=', '$1', {const, UUID}}]
         , [{'<', '$3', NoOlderThan}]
         , [['$1', '$2', '$3']]
     }],
     case ets:select(?CHANNELS_TBL, MatchSpec) of
         [] -> 0;
-        MatchChannels ->
-            N = length(MatchChannels),
-            lager:debug("~p channels over uuid ~p", [N, UUID]),
-            hangup_old_channels(MatchChannels),
+        OldChannels ->
+            N = length(OldChannels),
+            lager:debug("~p channels over uuid ~p filter", [N, UUID]),
+            hangup_old_channels(OldChannels),
             N
     end.
 
