@@ -879,7 +879,7 @@ cleanup_channel_by_uuid(UUID) ->
                           ,handling_locally='true'
                           ,_ = '_'
                           }
-                 ,[{'=:=', '$1', UUID}]
+                 ,[{'=:=', '$1', {const, UUID}}]
                  ,[['$1', '$2', '$3']]
                  }],
     case ets:select(?CHANNELS_TBL, MatchSpec) of
