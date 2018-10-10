@@ -259,9 +259,10 @@ attended_wait('cast', ?EVENT(Target, <<"CHANNEL_BRIDGE">>, Evt)
             lager:info("recv CHANNEL_BRIDGE on target ~s to transferor ~s, moving to attended_answer"
                       ,[Target, Transferor]
                       ),
-            lager:info("KILL Transferee ~s", [Transferee]),
+            lager:info("4 KILL Transferee ~s", [Transferee]),
 %%            freeswitch:api('freeswitch@cbcc.ddns.net', 'uuid_kill', Transferee),
-            ecallmgr_fs_channels:cleanup_channel_by_uuid(Transferee),
+%%            ecallmgr_fs_channels:cleanup_channel_by_uuid(Transferee),
+            ecallmgr_fs_channels:cleanup_old_channels(),
             ?WSD_EVT(Target, Transferor, <<"bridged">>),
             maybe_cancel_timer(Ref),
             {'next_state', 'attended_answer', State#state{purgatory_ref='undefined'}};
