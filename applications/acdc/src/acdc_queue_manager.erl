@@ -420,9 +420,9 @@ handle_cast({'member_call_cancel', K, JObj}, #state{ignored_member_calls=Dict}=S
     {'noreply', State#state{ignored_member_calls=dict:store(K, 'true', Dict)}};
 handle_cast({'monitor_call', Call}, State) ->
     CallId = kapps_call:call_id(Call),
-    gen_listener:add_binding(self(), 'call', [{'callid', CallId}
-                                             ,{'restrict_to', [<<"CHANNEL_DESTROY">>]}
-                                             ]),
+    %gen_listener:add_binding(self(), 'call', [{'callid', CallId}
+    %                                         ,{'restrict_to', [<<"CHANNEL_DESTROY">>]}
+    %                                         ]),
     lager:debug("bound for call events for ~s", [CallId]),
     {'noreply', State};
 handle_cast({'start_workers'}, #state{account_id=AccountId
