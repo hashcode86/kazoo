@@ -281,8 +281,10 @@ ready({'call', From}, 'status', #state{cdr_url=Url
 ready({'call', From}, 'current_call', State) ->
     {'next_state', 'ready', State, {'reply', From, 'undefined'}};
 ready({'call', From}, Event, State) ->
-    handle_sync_event(Event, From, ready, State).
-
+    handle_sync_event(Event, From, ready, State);
+ready(_, _, State) ->
+    lager:debug("thangdd8 fix 001 - connection timeout occurred, ignore"),
+    {'next_state', 'ready', State}.
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end

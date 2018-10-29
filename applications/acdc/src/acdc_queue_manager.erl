@@ -348,7 +348,8 @@ handle_call({'up_next', CallId}, _, #state{strategy_state=SS
                                           }=State) ->
     FreeAgents = ss_size(SS, 'free'),
     Position = call_position(CallId, lists:reverse(CurrentCalls)),
-    {'reply', FreeAgents >= Position, State};
+    lager:info("thangdd8 fix 003 - FreeAgents: ~p ,Position: ~p", [FreeAgents, Position]),
+    {'reply', FreeAgents >= 1, State};
 
 handle_call('config', _, #state{account_id=AccountId
                                ,queue_id=QueueId
@@ -419,9 +420,9 @@ handle_cast({'member_call_cancel', K, JObj}, #state{ignored_member_calls=Dict}=S
     {'noreply', State#state{ignored_member_calls=dict:store(K, 'true', Dict)}};
 handle_cast({'monitor_call', Call}, State) ->
     CallId = kapps_call:call_id(Call),
-    gen_listener:add_binding(self(), 'call', [{'callid', CallId}
-                                             ,{'restrict_to', [<<"CHANNEL_DESTROY">>]}
-                                             ]),
+    %gen_listener:add_binding(self(), 'call', [{'callid', CallId}
+    %                                         ,{'restrict_to', [<<"CHANNEL_DESTROY">>]}
+    %                                         ]),
     lager:debug("bound for call events for ~s", [CallId]),
     {'noreply', State};
 handle_cast({'start_workers'}, #state{account_id=AccountId
