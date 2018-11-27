@@ -56,7 +56,7 @@
 -spec handle(kz_json:object(), kapps_call:call()) -> 'ok'.
 handle(Data, Call) ->
     Menu = get_menu_profile(Data, Call),
-    kapps_call_command:answer(Call),
+    %% kapps_call_command:answer(Call),
     menu_loop(Menu, Call).
 
 %%------------------------------------------------------------------------------
