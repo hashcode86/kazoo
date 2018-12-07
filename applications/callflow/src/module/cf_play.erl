@@ -55,7 +55,7 @@ play(Data, Call, Media) ->
     case kz_json:is_false(<<"answer">>, Data) of
         'true' -> 'ok';
         'false' ->
-            kapps_call_command:answer(Call),
+            %% kapps_call_command:answer(Call),
             timer:sleep(?POST_ANSWER_DELAY)
     end,
     lager:info("playing media ~s", [Media]),
