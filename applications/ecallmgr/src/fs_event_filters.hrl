@@ -188,6 +188,7 @@
         ,<<"variable_sip_to_uri">>
         ,<<"variable_sip_to_user">>
         ,<<"variable_sip_user_agent">>
+        ,<<"variable_sip_hangup_disposition">>
         ,<<"variable_sofia_profile_name">>
         ,<<"variable_sofia_profile_url">>
         ,<<"variable_switch_r_sdp">>

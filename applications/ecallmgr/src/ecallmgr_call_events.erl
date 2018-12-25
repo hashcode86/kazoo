@@ -417,7 +417,7 @@ handle_info('timeout', #state{node=Node
                              ,failed_node_checks=FNC
                              }=State) ->
     erlang:monitor_node(Node, 'true'),
-    %% TODO: die if there is already a event producer on the AMPQ queue... ping/pong?
+    %% ODO: die if there is already a event producer on the AMPQ queue... ping/pong?
     case freeswitch:api(Node, 'uuid_exists', CallId) of
         {'error', 'timeout'} ->
             lager:warning("timeout trying to find call on node ~s, trying again", [Node]),
@@ -763,6 +763,7 @@ specific_call_event_props(<<"CHANNEL_DESTROY">>, _, Props) ->
     ,{<<"Ringing-Seconds">>, props:get_value(<<"variable_progresssec">>, Props)}
     ,{<<"User-Agent">>, props:get_value(<<"variable_sip_user_agent">>, Props)}
     ,{<<"Fax-Info">>, maybe_fax_specific(Props)}
+    ,{<<"Sip-Hangup-Disposition">>, props:get_value(<<"variable_sip_hangup_disposition">>, Props)}
      | debug_channel_props(Props)
     ];
 specific_call_event_props(<<"RECORD_START">>, _, Props) ->

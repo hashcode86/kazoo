@@ -272,6 +272,7 @@
 
         ,<<"variable_last_bridge_hangup_cause">>
         ,<<"variable_sip_redirected_by">>
+        ,<<"variable_sip_hangup_disposition">>
         ,<<"intercepted_by">>
         ,<<"variable_bridge_uuid">>
         ,<<"Record-File-Path">>
@@ -405,6 +406,7 @@
         ,<<"zrtp_secure_media_confirmed_video">>
         ,<<"variable_last_bridge_hangup_cause">>
         ,<<"variable_sip_redirected_by">>
+        ,<<"variable_sip_hangup_disposition">>
         ,<<"Message-ID">>
         ,<<"Delivery-Failure">>
         ,<<"Delivery-Result-Code">>
