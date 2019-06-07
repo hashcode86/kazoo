@@ -219,7 +219,7 @@ init([MgrPid, ListenerPid, QueueJObj]) ->
            ,cdr_url = kz_json:get_ne_value(<<"cdr_url">>, QueueJObj)
            ,member_call = 'undefined'
 
-           ,notifications = kz_json:get_value(<<"notifications">>, QueueJObj),
+           ,notifications = kz_json:get_value(<<"notifications">>, QueueJObj)
            ,timeout_timer_ref = 'undefined'
            }
     }.
