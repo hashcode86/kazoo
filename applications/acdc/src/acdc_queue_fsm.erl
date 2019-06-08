@@ -88,6 +88,7 @@
                ,cdr_url :: kz_term:api_binary() % optional URL to request for extra CDR data
 
                ,notifications :: kz_term:api_object()
+               ,timeout_timer_ref
                }).
 -type state() :: #state{}.
 
@@ -219,6 +220,7 @@ init([MgrPid, ListenerPid, QueueJObj]) ->
            ,member_call = 'undefined'
 
            ,notifications = kz_json:get_value(<<"notifications">>, QueueJObj)
+           ,timeout_timer_ref = 'undefined'
            }
     }.
 
@@ -326,11 +328,13 @@ connect_req('cast', {'member_hungup', JObj}, #state{queue_proc=Srv
                                                    ,member_call=Call
                                                    ,account_id=AccountId
                                                    ,queue_id=QueueId
+                                                   ,timeout_timer_ref=TimeoutTimerRef
                                                    }=State) ->
     CallId = kapps_call:call_id(Call),
     case kz_json:get_value(<<"Call-ID">>, JObj) =:= CallId of
         'true' ->
             lager:debug("member hungup before we could assign an agent"),
+            maybe_stop_timer(TimeoutTimerRef),
 
             webseq:evt(?WSD_ID, self(), CallId, <<"member call finish - abandon">>),
 
@@ -824,8 +828,8 @@ maybe_delay_connect_re_req(MgrSrv, ListenerSrv, #state{member_call=Call}=State) 
             {'next_state', 'connect_req', State#state{collect_ref=start_collect_timer()}};
         'false' ->
             lager:debug("connect_re_req delayed (not up next)"),
-            erlang:send_after(1000, self(), {'timeout', 'undefined', ?COLLECT_RESP_MESSAGE}),
-            {'next_state', 'connect_req', State#state{collect_ref='undefined'}}
+            Ref = erlang:send_after(1000, self(), {'timeout', 'undefined', ?COLLECT_RESP_MESSAGE}),
+            {'next_state', 'connect_req', State#state{collect_ref='undefined', timeout_timer_ref = Ref}}
     end.
 
 -spec accept_is_for_call(kz_json:object(), kapps_call:call()) -> boolean().
