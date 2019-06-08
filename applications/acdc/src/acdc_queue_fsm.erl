@@ -334,6 +334,7 @@ connect_req('cast', {'member_hungup', JObj}, #state{queue_proc=Srv
     case kz_json:get_value(<<"Call-ID">>, JObj) =:= CallId of
         'true' ->
             lager:debug("member hungup before we could assign an agent"),
+            lager:info("thangdd8 fix 007 - stop TimeoutTimerRef when member call hungup"),
             maybe_stop_timer(TimeoutTimerRef),
 
             webseq:evt(?WSD_ID, self(), CallId, <<"member call finish - abandon">>),
