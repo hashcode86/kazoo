@@ -328,14 +328,11 @@ connect_req('cast', {'member_hungup', JObj}, #state{queue_proc=Srv
                                                    ,member_call=Call
                                                    ,account_id=AccountId
                                                    ,queue_id=QueueId
-                                                   ,timeout_timer_ref=TimeoutTimerRef
                                                    }=State) ->
     CallId = kapps_call:call_id(Call),
     case kz_json:get_value(<<"Call-ID">>, JObj) =:= CallId of
         'true' ->
             lager:debug("member hungup before we could assign an agent"),
-            lager:info("thangdd8 fix 007 - stop TimeoutTimerRef when member call hungup"),
-            maybe_stop_timer(TimeoutTimerRef),
 
             webseq:evt(?WSD_ID, self(), CallId, <<"member call finish - abandon">>),
 
@@ -704,11 +701,14 @@ clear_member_call(#state{connection_timer_ref=ConnRef
                         ,agent_ring_timer_ref=AgentRef
                         ,collect_ref=CollectRef
                         ,queue_id=QueueId
+                        ,timeout_timer_ref=TimeoutTimerRef
                         }=State) ->
     kz_util:put_callid(QueueId),
     maybe_stop_timer(ConnRef),
     maybe_stop_timer(AgentRef),
     maybe_stop_timer(CollectRef),
+    lager:info("thangdd8 fix 007 - stop TimeoutTimerRef when clear_member_call"),
+    maybe_stop_timer(TimeoutTimerRef),
     State#state{connect_resps=[]
                ,collect_ref='undefined'
                ,member_call='undefined'
@@ -716,6 +716,7 @@ clear_member_call(#state{connection_timer_ref=ConnRef
                ,agent_ring_timer_ref='undefined'
                ,member_call_start='undefined'
                ,member_call_winner='undefined'
+               ,timeout_timer_ref = 'undefined'
                }.
 
 update_properties(QueueJObj, State) ->
