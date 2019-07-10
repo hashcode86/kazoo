@@ -531,6 +531,12 @@ handle_cast({'channel_hungup', CallId}, #state{call=Call
                     acdc_util:unbind_from_call_events(ACallId),
                     stop_agent_leg(ACallId, ACtrlQ),
                     {'noreply', State#state{agent_call_ids=props:delete(ACallId, ACallIds)}};
+                _ACtrlQ ->
+                    lager:info("thangdd8 fix 008.1 - fix acdc_agent_listener crash"),
+                    lager:debug("agent channel ~s hungup, stop call on ctlq ~s", [CallId, _ACtrlQ]),
+                    acdc_util:unbind_from_call_events(CallId),
+                    stop_agent_leg(CallId, _ACtrlQ),
+                    {'noreply', State#state{agent_call_ids=props:delete(CallId, ACallIds)}};
                 'undefined' ->
                     lager:debug("unknown call id ~s for channel_hungup, ignoring", [CallId]),
                     lager:debug("listening for call id(~s) and agents (~p)", [CCallId, ACallIds]),
