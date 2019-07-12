@@ -89,6 +89,7 @@
                                                      ,'RECORD_STOP'
                                                      ,'CHANNEL_REPLACED'
                                                      ,'CHANNEL_TRANSFEROR'
+                                                     ,'CHANNEL_DESTROY'
                                                      ]}
                                     ]}
                           ,{'self', []}
@@ -151,6 +152,8 @@ handle_call_event(JObj, Props) ->
             Media = get_response_media(JObj),
             FreeSWITCHNode = kz_call_event:switch_nodename(JObj),
             gen_listener:cast(Pid, {'record_stop', Media, FreeSWITCHNode, JObj});
+        {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
+            gen_listener:cast(Pid, 'maybe_exit_recording_on_destroy');
         {_Cat, _Evt} -> 'ok'
     end.
 
@@ -261,6 +264,9 @@ handle_cast({'record_stop', {_, MediaName}, _FS, _JObj}, #state{media={_, MediaN
     {'stop', 'normal', State};
 handle_cast({'record_stop', _Media, _FS, _JObj}, State) ->
     {'noreply', State};
+handle_cast('maybe_exit_recording_on_destroy', #state{is_recording='false'}=State) ->
+    lager:info("thangdd8 fix 009.1 - channel_destroy but we're not recording, exiting to fix queue leak"),
+    {'stop', 'normal', State};
 handle_cast('maybe_start_recording_on_bridge', #state{is_recording='true'}=State) ->
     {'noreply', State};
 handle_cast('maybe_start_recording_on_bridge', #state{is_recording='false'
