@@ -264,8 +264,10 @@ handle_cast({'record_stop', {_, MediaName}, _FS, _JObj}, #state{media={_, MediaN
     {'stop', 'normal', State};
 handle_cast({'record_stop', _Media, _FS, _JObj}, State) ->
     {'noreply', State};
-handle_cast('maybe_exit_recording_on_destroy', #state{is_recording='false'}=State) ->
-    lager:info("thangdd8 fix 009.1 - channel_destroy but we're not recording, exiting to fix queue leak"),
+handle_cast('maybe_exit_recording_on_destroy', #state{is_recording='false'
+                                                     ,store_attempted='false'
+                                                     }=State) ->
+    lager:info("thangdd8 fix 009.1 - channel_destroy but we're not recording and not store_attempted, exiting to fix queue leak"),
     {'stop', 'normal', State};
 handle_cast('maybe_start_recording_on_bridge', #state{is_recording='true'}=State) ->
     {'noreply', State};
