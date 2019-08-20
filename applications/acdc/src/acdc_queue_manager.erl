@@ -348,8 +348,8 @@ handle_call({'up_next', CallId}, _, #state{strategy_state=SS
                                           }=State) ->
     FreeAgents = ss_size(SS, 'free'),
     Position = call_position(CallId, lists:reverse(CurrentCalls)),
-    lager:info("thangdd8 fix 003 - FreeAgents: ~p ,Position: ~p", [FreeAgents, Position]),
-    {'reply', FreeAgents >= 1, State};
+    lager:info("thangdd8 fix 010 [reverted 003] - FreeAgents: ~p ,Position: ~p ,CallId: ~s", [FreeAgents, Position, CallId]),
+    {'reply', FreeAgents >= Position, State};
 
 handle_call('config', _, #state{account_id=AccountId
                                ,queue_id=QueueId
