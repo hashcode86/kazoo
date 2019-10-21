@@ -136,8 +136,9 @@ find_agent_supervisor(AcctId, AgentId, [Super|Rest]) ->
 -spec init(any()) -> kz_types:sup_init_ret().
 init([]) ->
     RestartStrategy = 'simple_one_for_one',
-    MaxRestarts = 1,
+    MaxRestarts = 100,
     MaxSecondsBetweenRestarts = 1,
+    lager:info("thangdd8 fix 011 - cho phep restart nhieu agent cung luc trong 1s"),
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
