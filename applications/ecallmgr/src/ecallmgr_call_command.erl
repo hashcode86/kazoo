@@ -1521,7 +1521,7 @@ maybe_get_terminators(Acc, JObj) ->
 
 -spec should_record_stereo(kz_json:object()) -> kz_term:ne_binary().
 should_record_stereo(JObj) ->
-    case kz_json:is_true(<<"Channels-As-Stereo">>, JObj, 'true') of
+    case kz_json:is_true(<<"Channels-As-Stereo">>, JObj, 'false') of
         'true'  -> <<"true">>;
         'false' -> <<"false">>
     end.
