@@ -2423,7 +2423,12 @@ do_collect_digits(#wcc_collect_digits{max_digits=MaxDigits
                     case lists:member(Digit, Terminators) of
                         'true' ->
                             lager:debug("collected digits ('~s') from caller, terminated with ~s", [Digits, Digit]),
-                            {'ok', Digits};
+                            case Digits of
+                                <<"">> ->
+                                    {'ok', <<"#">>};
+                                _ ->
+                                    {'ok', Digits}
+                            end;
                         'false' ->
                             case <<Digits/binary, Digit/binary>> of
                                 D when byte_size(D) < MaxDigits ->
