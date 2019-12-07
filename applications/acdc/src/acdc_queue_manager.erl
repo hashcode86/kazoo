@@ -347,8 +347,8 @@ handle_call({'up_next', CallId}, _, #state{strategy_state=SS
                                           ,current_member_calls=CurrentCalls
                                           }=State) ->
     FreeAgents = ss_size(SS, 'free'),
-    Position = call_position(CallId, CurrentCalls),
-    lager:info("thangdd8 fix 010 [reverted 003] & 014 [LIFO] - FreeAgents: ~p ,Position: ~p ,CallId: ~s", [FreeAgents, Position, CallId]),
+    Position = call_position(CallId, lists:reverse(CurrentCalls)),
+    lager:info("thangdd8 fix 010 [reverted 003] - FreeAgents: ~p ,Position: ~p ,CallId: ~s", [FreeAgents, Position, CallId]),
     {'reply', FreeAgents >= Position, State};
 
 handle_call('config', _, #state{account_id=AccountId
@@ -441,7 +441,7 @@ handle_cast({'start_workers'}, #state{account_id=AccountId
             acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId);
         {'ok', Agents} ->
             QWC = kapps_config:get_integer(?CONFIG_CAT, <<"queue_worker_count">>, 5),
-            lager:debug("thangdd8 fix 014: create fixed number of queue wokers: ~p", [QWC]),
+            lager:debug("thangdd8 fix 014[BITEL]: create fixed number of queue wokers: ~p", [QWC]),
             acdc_queue_workers_sup:new_workers(WorkersSup, AccountId, QueueId, QWC),
             _ = [start_agent_and_worker(WorkersSup, AccountId, QueueId
                                        ,kz_json:get_value(<<"doc">>, A)
@@ -575,8 +575,8 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                  CallId = kapps_call:call_id(Call),
                                  AnnouncementsPids#{CallId => Pid}
                          end,
-
-    {'noreply', State#state{current_member_calls=[Call | CurrentCalls]
+    lager:debug("thangdd8 - fix 014[BITEL]: LIFO for member call"),
+    {'noreply', State#state{current_member_calls=[CurrentCalls | Call]
                            ,announcements_pids=AnnouncementsPids1
                            }};
 
