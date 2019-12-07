@@ -680,21 +680,21 @@ publish_queue_member_remove(AccountId, QueueId, CallId) ->
            ],
     kapi_acdc_queue:publish_queue_member_remove(Prop).
 
--spec start_agent_and_worker(pid(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
-start_agent_and_worker(WorkersSup, AccountId, QueueId, AgentJObj) ->
-    acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId),
-    AgentId = kz_doc:id(AgentJObj),
-    case acdc_agent_util:most_recent_status(AccountId, AgentId) of
-        {'ok', <<"logout">>} -> 'ok';
-        {'ok', <<"logged_out">>} -> 'ok';
-        {'ok', _Status} ->
-            lager:debug("maybe starting agent ~s(~s) for queue ~s", [AgentId, _Status, QueueId]),
-
-            case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
-                'undefined' -> acdc_agents_sup:new(AgentJObj);
-                P when is_pid(P) -> 'ok'
-            end
-    end.
+%%-spec start_agent_and_worker(pid(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+%%start_agent_and_worker(WorkersSup, AccountId, QueueId, AgentJObj) ->
+%%    acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId),
+%%    AgentId = kz_doc:id(AgentJObj),
+%%    case acdc_agent_util:most_recent_status(AccountId, AgentId) of
+%%        {'ok', <<"logout">>} -> 'ok';
+%%        {'ok', <<"logged_out">>} -> 'ok';
+%%        {'ok', _Status} ->
+%%            lager:debug("maybe starting agent ~s(~s) for queue ~s", [AgentId, _Status, QueueId]),
+%%
+%%            case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
+%%                'undefined' -> acdc_agents_sup:new(AgentJObj);
+%%                P when is_pid(P) -> 'ok'
+%%            end
+%%    end.
 
 %% Really sophisticated selection algorithm
 -spec pick_winner(pid(), kz_json:objects(), queue_strategy(), kz_term:api_binary()) ->
