@@ -24,6 +24,7 @@
                ,current_member_calls = [] :: list() % ordered list of current members waiting
                ,announcements_config = [] :: kz_term:proplist()
                ,announcements_pids = #{} :: announcements_pids()
+               ,connection_timeout :: pos_integer()
                }).
 -type mgr_state() :: #state{}.
 
