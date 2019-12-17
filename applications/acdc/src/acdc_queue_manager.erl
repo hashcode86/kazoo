@@ -188,6 +188,7 @@ start_queue_call(JObj, Props, Call) ->
     end,
 
     JObj2 = kz_json:set_value([<<"Call">>, <<"Custom-Channel-Vars">>, <<"Queue-ID">>], QueueId, JObj),
+    JObj3 = kz_json:set_value([<<"Call">>, <<"Custom-Channel-Vars">>, <<"Queue-Timestamp">>], kz_time:now_s(), JObj2),
 
     _ = kapps_call_command:set('undefined'
                               ,kz_json:from_list([{<<"Eavesdrop-Group-ID">>, QueueId}
@@ -197,7 +198,7 @@ start_queue_call(JObj, Props, Call) ->
                               ),
 
     %% Add member to queue for tracking position
-    gen_listener:cast(props:get_value('server', Props), {'add_queue_member', JObj2}).
+    gen_listener:cast(props:get_value('server', Props), {'add_queue_member', JObj3}).
 
 -spec handle_member_call_success(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_member_call_success(JObj, Prop) ->
@@ -316,15 +317,17 @@ init(Super, AccountId, QueueId, QueueJObj) ->
     gen_listener:cast(self(), {'start_workers'}),
     Strategy = get_strategy(kz_json:get_value(<<"strategy">>, QueueJObj)),
     StrategyState = create_strategy_state(Strategy, AccountDb, QueueId),
+    ConnectionTimeout = kz_json:get_integer_value(<<"connection_timeout">>, QueueJObj, 3600),
 
     _ = update_strategy_state(self(), Strategy, StrategyState),
 
-    lager:debug("queue mgr started for ~s", [QueueId]),
+    lager:debug("thangdd8 fix 015: queue mgr started for ~s ,ConnectionTimeout: ~p", [QueueId, ConnectionTimeout]),
     {'ok', update_properties(QueueJObj, #state{account_id=AccountId
                                               ,queue_id=QueueId
                                               ,supervisor=Super
                                               ,strategy=Strategy
                                               ,strategy_state=StrategyState
+                                              ,connection_timeout=ConnectionTimeout
                                               })}.
 
 %%------------------------------------------------------------------------------
@@ -545,8 +548,18 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                               ,current_member_calls=CurrentCalls
                                               ,announcements_config=AnnouncementsConfig
                                               ,announcements_pids=AnnouncementsPids
+                                              ,connection_timeout=ConnectionTimeout
+                                              ,ignored_member_calls=Dict
                                               }=State) ->
-    Position = length(CurrentCalls)+1,
+    StuckCalls = stuck_call_detect(ConnectionTimeout, CurrentCalls),
+    case length(StuckCalls) > 0 of
+        true -> lager:warning("thangdd8 fix 015: stuck calls found: ~p. I will remove it", [StuckCalls]);
+        false -> 'ok'
+    end,
+    NewCurrentCalls = stuck_call_remove(StuckCalls, CurrentCalls),
+    NewDict = stuck_call_to_ignored_list(AccountId, QueueId, StuckCalls, Dict),
+
+    Position = length(NewCurrentCalls)+1,
     Call = kapps_call:set_custom_channel_var(<<"Queue-Position">>
                                             ,Position
                                             ,kapps_call:from_json(kz_json:get_value(<<"Call">>, JObj))),
@@ -576,8 +589,9 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                  AnnouncementsPids#{CallId => Pid}
                          end,
 
-    {'noreply', State#state{current_member_calls=[Call | CurrentCalls]
+    {'noreply', State#state{current_member_calls=[Call | NewCurrentCalls]
                            ,announcements_pids=AnnouncementsPids1
+                           ,ignored_member_calls=NewDict
                            }};
 
 handle_cast({'handle_queue_member_add', JObj}, #state{current_member_calls=CurrentCalls}=State) ->
@@ -939,6 +953,7 @@ update_properties(QueueJObj, State) ->
     State#state{enter_when_empty=kz_json:is_true(<<"enter_when_empty">>, QueueJObj, 'true')
                ,moh=kz_json:get_ne_value(<<"moh">>, QueueJObj)
                ,announcements_config=announcements_config(QueueJObj)
+               ,connection_timeout=kz_json:get_integer_value(<<"connection_timeout">>, QueueJObj, 3600)
                }.
 
 -spec announcements_config(kz_json:object()) -> kz_term:proplist().
@@ -982,3 +997,38 @@ remove_queue_member(CallId, #state{current_member_calls=CurrentCalls
     State#state{current_member_calls=lists:keydelete(CallId, 2, CurrentCalls)
                ,announcements_pids=AnnouncementsPids1
                }.
+
+-spec stuck_call_detect(pos_integer(), [kapps_call:call()]) -> [kz_term:ne_binary()].
+stuck_call_detect(ConnectionTimeout, Calls) ->
+    stuck_call_detect(ConnectionTimeout, Calls, []).
+
+-spec stuck_call_detect(pos_integer(), [kapps_call:call()], [kapps_call:call()]) -> [kz_term:ne_binary()].
+stuck_call_detect(_, [], CallIds) ->
+    CallIds;
+stuck_call_detect(ConnectionTimeout, [Call|Calls], CallIds) ->
+    CallId = kapps_call:call_id(Call),
+    CallJSON = kapps_call:to_json(Call),
+    CCVs = kz_json:get_value(<<"Custom-Channel-Vars">>, CallJSON, kz_json:new()),
+    Timestamp = kz_json:get_integer_value(<<"Queue-Timestamp">>, CCVs, 0),
+    Now = kz_time:now_s(),
+
+    case Timestamp > 0
+        andalso Now - Timestamp > (ConnectionTimeout + 20) of
+        true -> lager:debug("thangdd8 fix 015: Call stuck in queue. CallID: ~s ,Queue-Timestamp: ~p ,Now: ~p ,ConnectionTimeout: ~p", [CallId, Timestamp, Now, ConnectionTimeout]),
+            stuck_call_detect(ConnectionTimeout, Calls, [CallId | CallIds]);
+        false -> stuck_call_detect(ConnectionTimeout, Calls, CallIds)
+    end.
+
+-spec stuck_call_remove([kz_term:ne_binary()], [kapps_call:call()]) -> [kapps_call:call()].
+stuck_call_remove([], Calls) ->
+    Calls;
+stuck_call_remove([CallId|CallIds], Calls) ->
+    NewCalls = lists:keydelete(CallId, 2, Calls),
+    stuck_call_remove(CallIds, NewCalls).
+
+-spec stuck_call_to_ignored_list(kz_term:ne_binary(), kz_term:ne_binary(), [kz_term:ne_binary()], dict:dict()) -> dict:dict().
+stuck_call_to_ignored_list(_, _, [], Dict) ->
+    Dict;
+stuck_call_to_ignored_list(AccountId, QueueId, [CallId|CallIds], Dict) ->
+    NewDict = dict:store(make_ignore_key(AccountId, QueueId, CallId), 'true', Dict),
+    stuck_call_to_ignored_list(AccountId, QueueId, CallIds, NewDict).
