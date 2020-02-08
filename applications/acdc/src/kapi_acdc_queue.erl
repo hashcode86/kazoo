@@ -65,7 +65,7 @@
 %% Member Call
 %%------------------------------------------------------------------------------
 -define(MEMBER_CALL_HEADERS, [<<"Account-ID">>, <<"Queue-ID">>, <<"Call">>]).
--define(OPTIONAL_MEMBER_CALL_HEADERS, [<<"Member-Priority">>]).
+-define(OPTIONAL_MEMBER_CALL_HEADERS, [<<"Member-Priority">>, <<"Queue-Timestamp">>]).
 -define(MEMBER_CALL_VALUES, [{<<"Event-Category">>, <<"member">>}
                             ,{<<"Event-Name">>, <<"call">>}
                             ]).
