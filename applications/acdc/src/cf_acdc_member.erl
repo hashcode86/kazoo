@@ -43,6 +43,7 @@ handle(Data, Call) ->
                    ,{<<"Queue-ID">>, QueueId}
                    ,{<<"Call">>, kapps_call:to_json(Call)}
                    ,{<<"Member-Priority">>, Priority}
+                   ,{<<"Queue-Timestamp">>, kz_time:now_s()}
                     | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
                    ]),
 
