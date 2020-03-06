@@ -119,6 +119,8 @@
         ,#voiceDesc{name = <<"fr-FR-Standard-D">>, ssmlGender = <<"MALE">>, naturalSampleRateHertz = 24000, languageCodes = [<<"fr-FR">>]}
         ,#voiceDesc{name = <<"vi-VN-Standard-A">>, ssmlGender = <<"FEMALE">>, naturalSampleRateHertz = 24000, languageCodes = [<<"vi-VN">>]}
         ,#voiceDesc{name = <<"vi-VN-Standard-B">>, ssmlGender = <<"MALE">>, naturalSampleRateHertz = 24000, languageCodes = [<<"vi-VN">>]}
+        ,#voiceDesc{name = <<"id-ID-Standard-A">>, ssmlGender = <<"FEMALE">>, naturalSampleRateHertz = 24000, languageCodes = [<<"id-ID">>]}
+        ,#voiceDesc{name = <<"id-ID-Standard-B">>, ssmlGender = <<"MALE">>, naturalSampleRateHertz = 24000, languageCodes = [<<"id-ID">>]}
         ]
        ).
 
