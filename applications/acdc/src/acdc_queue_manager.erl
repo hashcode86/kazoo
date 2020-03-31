@@ -593,7 +593,7 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
             lager:debug("Sorted By Priority: ~p~n", [lists:sort(fun compare_priority_of_member_call/2, NewCurrentCalls2)]);
         false -> 'ok'
     end,
-    
+
 
     {'noreply', State#state{current_member_calls=[Call | NewCurrentCalls]
                            ,announcements_pids=AnnouncementsPids1
@@ -704,7 +704,8 @@ publish_queue_member_remove(AccountId, QueueId, CallId) ->
 start_agent_and_worker(WorkersSup, AccountId, QueueId, AgentJObj) ->
     acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId),
     AgentId = kz_doc:id(AgentJObj),
-    case acdc_agent_util:most_recent_status(AccountId, AgentId) of
+    %case acdc_agent_util:most_recent_status(AccountId, AgentId) of
+    case acdc_agent_util:most_recent_db_status(AccountId, AgentId) of
         {'ok', <<"logout">>} -> 'ok';
         {'ok', <<"logged_out">>} -> 'ok';
         {'ok', _Status} ->
@@ -1052,4 +1053,4 @@ compare_priority_of_member_call(Call1, Call2) ->
 
     lager:debug("thangdd8 fix 018: compare_priority_of_member_call. Priority1: ~p ,Priority2: ~p", [Priority1, Priority2]),
 
-    Priority1 < Priority2.
+    Priority1 =< Priority2.
