@@ -524,7 +524,9 @@ handle_cast({'reject_member_call', Call, JObj}, #state{account_id=AccountId
     {'noreply', State};
 
 handle_cast({'sync_with_agent', A}, #state{account_id=AccountId}=State) ->
-    case acdc_agent_util:most_recent_status(AccountId, A) of
+    lager:info("thangdd8 fix 018: Load agent status ~s.~s ", [AccountId, A]),
+    %case acdc_agent_util:most_recent_status(AccountId, A) of
+    case acdc_agent_util:most_recent_db_status(AccountId, A) of
         {'ok', <<"logged_out">>} -> gen_listener:cast(self(), {'agent_unavailable', A});
         _ -> gen_listener:cast(self(), {'agent_available', A})
     end,
@@ -704,6 +706,7 @@ publish_queue_member_remove(AccountId, QueueId, CallId) ->
 start_agent_and_worker(WorkersSup, AccountId, QueueId, AgentJObj) ->
     acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId),
     AgentId = kz_doc:id(AgentJObj),
+    lager:info("thangdd8 fix 018: Load agent status ~s.~s ", [AccountId, AgentId]),
     %case acdc_agent_util:most_recent_status(AccountId, AgentId) of
     case acdc_agent_util:most_recent_db_status(AccountId, AgentId) of
         {'ok', <<"logout">>} -> 'ok';
