@@ -588,15 +588,6 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                  AnnouncementsPids#{CallId => Pid}
                          end,
 
-    NewCurrentCalls2 = [Call | NewCurrentCalls],
-    case length(NewCurrentCalls2) > 1 of
-        true ->
-            lager:debug("Unsorted Items: ~p~n", [NewCurrentCalls2]),
-            lager:debug("Sorted By Priority: ~p~n", [lists:sort(fun compare_priority_of_member_call/2, NewCurrentCalls2)]);
-        false -> 'ok'
-    end,
-
-
     {'noreply', State#state{current_member_calls=[Call | NewCurrentCalls]
                            ,announcements_pids=AnnouncementsPids1
                            ,ignored_member_calls=NewDict
@@ -1042,18 +1033,3 @@ stuck_call_to_ignored_list(_, _, [], Dict) ->
 stuck_call_to_ignored_list(AccountId, QueueId, [CallId|CallIds], Dict) ->
     NewDict = dict:store(make_ignore_key(AccountId, QueueId, CallId), 'true', Dict),
     stuck_call_to_ignored_list(AccountId, QueueId, CallIds, NewDict).
-
-
-
-
-
--spec compare_priority_of_member_call(kapps_call:call(), kapps_call:call()) -> boolean().
-compare_priority_of_member_call(Call1, Call2) ->
-    CallJSON1 = kapps_call:to_json(Call1),
-    CallJSON2 = kapps_call:to_json(Call2),
-    Priority1 = kz_json:get_integer_value(<<"Member-Priority">>, CallJSON1, 0),
-    Priority2 = kz_json:get_integer_value(<<"Member-Priority">>, CallJSON2, 0),
-
-    lager:debug("thangdd8 fix 018: compare_priority_of_member_call. Priority1: ~p ,Priority2: ~p", [Priority1, Priority2]),
-
-    Priority1 =< Priority2.
