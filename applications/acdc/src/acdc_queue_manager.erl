@@ -592,11 +592,15 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                  AnnouncementsPids#{CallId => Pid}
                          end,
 
-    FreeAgents = ss_size(SS, 'free'),
-    {Left, Right} = lists:split(FreeAgents, NewCurrentCalls),
-    lager:debug("thangdd8 fix 019[BITEL]: split to insert call after ~p calls. Left length: ~p, Right length: ~p", [FreeAgents, length(Left), length(Right)]),
+    case length(NewCurrentCalls) > FreeAgents of
+        'true' -> FreeAgents = ss_size(SS, 'free'),
+            {Left, Right} = lists:split(FreeAgents, NewCurrentCalls),
+            lager:debug("thangdd8 fix 020[BITEL]: split to insert call after ~p calls. Left length: ~p, Right length: ~p", [FreeAgents, length(Left), length(Right)]),
+            CurrentMemberCalls = Left ++ [Call|Right] ;
+        'false' -> CurrentMemberCalls = [Call|NewCurrentCalls]
+    end,
 
-    {'noreply', State#state{current_member_calls=Left ++ [Call|Right]
+    {'noreply', State#state{current_member_calls=CurrentMemberCalls
                            ,announcements_pids=AnnouncementsPids1
                            ,ignored_member_calls=NewDict
                            }};
