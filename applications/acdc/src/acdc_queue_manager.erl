@@ -547,6 +547,7 @@ handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
 
 handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                               ,queue_id=QueueId
+                                              ,strategy_state=SS
                                               ,current_member_calls=CurrentCalls
                                               ,announcements_config=AnnouncementsConfig
                                               ,announcements_pids=AnnouncementsPids
@@ -591,7 +592,11 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                  AnnouncementsPids#{CallId => Pid}
                          end,
 
-    {'noreply', State#state{current_member_calls=[Call | NewCurrentCalls]
+    FreeAgents = ss_size(SS, 'free'),
+    {Left, Right} = lists:split(FreeAgents, NewCurrentCalls),
+    lager:debug("thangdd8 fix 019[BITEL]: split to insert call after ~p calls. Left length: ~p, Right length: ~p", [FreeAgents, length(Left), length(Right)]),
+
+    {'noreply', State#state{current_member_calls=Left ++ [Call|Right]
                            ,announcements_pids=AnnouncementsPids1
                            ,ignored_member_calls=NewDict
                            }};
