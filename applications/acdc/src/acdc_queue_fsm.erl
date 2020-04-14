@@ -791,8 +791,8 @@ maybe_delay_connect_req(Call, CallJObj, Delivery, #state{queue_proc=QueueSrv
                                                      ,connection_timer_ref=start_connection_timer(ConnTimeout)
                                                      }};
         'false' ->
-            lager:debug("connect_req delayed (not up next)"),
-            _ = timer:apply_after(1000, 'gen_statem', 'cast', [self(), {'member_call', CallJObj, Delivery}]),
+            lager:debug("thangdd8 fix 020: connect_req delayed (not up next)"),
+            _ = timer:apply_after(2000, 'gen_statem', 'cast', [self(), {'member_call', CallJObj, Delivery}]),
             {'next_state', 'ready', State}
     end.
 
