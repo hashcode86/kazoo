@@ -595,9 +595,9 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
     FreeAgents = ss_size(SS, 'free'),
     case length(NewCurrentCalls) >= FreeAgents of
         'true' ->
-            lager:debug("thangdd8 fix 020[BITEL]: FreeAgents: ~p. CurrentCalls before put new call: ~p", [FreeAgents, length(NewCurrentCalls)]),
+            lager:debug("thangdd8 fix 019[BITEL]: FreeAgents: ~p. CurrentCalls before put new call: ~p", [FreeAgents, length(NewCurrentCalls)]),
             {Left, Right} = lists:split(FreeAgents, NewCurrentCalls),
-            lager:debug("thangdd8 fix 020[BITEL]: split to insert call after ~p calls. Left length: ~p, Right length: ~p", [FreeAgents, length(Left), length(Right)]),
+            lager:debug("thangdd8 fix 019[BITEL]: split to insert call after ~p calls. Left length: ~p, Right length: ~p", [FreeAgents, length(Left), length(Right)]),
             CurrentMemberCalls = Left ++ [Call|Right] ;
         'false' -> CurrentMemberCalls = [Call|NewCurrentCalls]
     end,
