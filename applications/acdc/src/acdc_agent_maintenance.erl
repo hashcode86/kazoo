@@ -65,7 +65,8 @@ agent_restart(AcctId, AgentId) ->
         S ->
             lager:info("Terminating existing agent process ~p", [S]),
             exit(S, 'kill'),
-            lager:info("Restarting agent ~s in ~s", [AgentId, AcctId]),
-            _ = acdc_agents_sup:new(AcctId, AgentId),
+            lager:info("thangdd8 fix 021: just kill without init new agent_sup because acdc_agents_sup will do it automatically"),
+            %lager:info("Restarting agent ~s in ~s", [AgentId, AcctId]),
+            %_ = acdc_agents_sup:new(AcctId, AgentId),
             'ok'
     end.
