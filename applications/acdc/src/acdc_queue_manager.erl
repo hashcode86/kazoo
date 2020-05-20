@@ -443,9 +443,14 @@ handle_cast({'start_workers'}, #state{account_id=AccountId
             lager:debug("no agents yet, but create a worker anyway"),
             acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId);
         {'ok', Agents} ->
-            QWC = kapps_config:get_integer(?CONFIG_CAT, <<"queue_worker_count">>, 5),
-            lager:debug("thangdd8 fix 019[BITEL]: create fixed number of queue woker: ~p", [QWC]),
-            acdc_queue_workers_sup:new_workers(WorkersSup, AccountId, QueueId, QWC),
+            QWC = kapps_config:get_integer(?CONFIG_CAT, <<"queue_worker_count">>, 200),
+
+            case length(Agents) < QWC of
+                true -> lager:debug("thangdd8 fix 019[BITEL]: create fixed number of queue woker: ~p for queue: ~p", [QWC, QueueId]),
+                    acdc_queue_workers_sup:new_workers(WorkersSup, AccountId, QueueId, QWC);
+                false -> lager:debug("thangdd8 fix 019[BITEL]: don't need create more queue woker")
+            end,
+
             _ = [start_agent_and_worker(WorkersSup, AccountId, QueueId
                                        ,kz_json:get_value(<<"doc">>, A)
                                        )
