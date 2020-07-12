@@ -318,16 +318,19 @@ init(Super, AccountId, QueueId, QueueJObj) ->
     Strategy = get_strategy(kz_json:get_value(<<"strategy">>, QueueJObj)),
     StrategyState = create_strategy_state(Strategy, AccountDb, QueueId),
     ConnectionTimeout = kz_json:get_integer_value(<<"connection_timeout">>, QueueJObj, 3600),
+    AgentsSkill = update_agents_skill_config(kz_json:get_list_value(<<"agents_skill">>, QueueJObj, [])),
 
     _ = update_strategy_state(self(), Strategy, StrategyState),
 
     lager:debug("thangdd8 fix 015: queue mgr started for ~s ,ConnectionTimeout: ~p", [QueueId, ConnectionTimeout]),
+    lager:debug("thangdd8 fix 022: Agents Skill Config: ~s", [AgentsSkill]),
     {'ok', update_properties(QueueJObj, #state{account_id=AccountId
                                               ,queue_id=QueueId
                                               ,supervisor=Super
                                               ,strategy=Strategy
                                               ,strategy_state=StrategyState
                                               ,connection_timeout=ConnectionTimeout
+                                              ,agents_skill=AgentsSkill
                                               })}.
 
 %%------------------------------------------------------------------------------
@@ -1033,3 +1036,10 @@ stuck_call_to_ignored_list(_, _, [], Dict) ->
 stuck_call_to_ignored_list(AccountId, QueueId, [CallId|CallIds], Dict) ->
     NewDict = dict:store(make_ignore_key(AccountId, QueueId, CallId), 'true', Dict),
     stuck_call_to_ignored_list(AccountId, QueueId, CallIds, NewDict).
+
+-spec update_agents_skill_config([kz_term:ne_binary()]) -> dict:dict().
+update_agents_skill_config(AgentsSkillConfig) ->
+    lists:foldl(fun(JObj, Acc) ->
+        dict:store(kz_json:get_ne_binary_value([<<"id">>], JObj), kz_json:get_integer_value([<<"skill">>], JObj, 1), Acc)
+                          end, dict:new(), AgentsSkillConfig).
+

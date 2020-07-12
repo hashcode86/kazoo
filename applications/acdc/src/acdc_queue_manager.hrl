@@ -25,6 +25,7 @@
                ,announcements_config = [] :: kz_term:proplist()
                ,announcements_pids = #{} :: announcements_pids()
                ,connection_timeout :: pos_integer()
+               ,agents_skill = dict:new() :: dict:dict() % {AgentId, Skill}
                }).
 -type mgr_state() :: #state{}.
 
