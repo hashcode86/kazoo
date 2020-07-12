@@ -323,7 +323,8 @@ init(Super, AccountId, QueueId, QueueJObj) ->
     _ = update_strategy_state(self(), Strategy, StrategyState),
 
     lager:debug("thangdd8 fix 015: queue mgr started for ~s ,ConnectionTimeout: ~p", [QueueId, ConnectionTimeout]),
-    lager:debug("thangdd8 fix 022: Agents Skill Config: ~p", [kz_json:get_list_value(<<"agents_skill">>, QueueJObj, [])]),
+    lager:debug("thangdd8 fix 022: Agents Skill Config: ~p", [dict:to_list(AgentsSkill)]),
+
     {'ok', update_properties(QueueJObj, #state{account_id=AccountId
                                               ,queue_id=QueueId
                                               ,supervisor=Super
