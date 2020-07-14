@@ -279,7 +279,7 @@ agents_available(Srv) -> gen_listener:call(Srv, 'agents_available').
 -spec pick_winner(pid(), kz_json:objects()) ->
                          'undefined' |
                          {kz_json:objects(), kz_json:objects()}.
-pick_winner(Srv, Resps) -> pick_winner(Srv, Resps, strategy(Srv), next_winner(Srv)).
+pick_winner(Srv, Resps) -> pick_winner(Srv, Resps, strategy(Srv), current_agents(Srv)).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -716,19 +716,22 @@ start_agent_and_worker(WorkersSup, AccountId, QueueId, AgentJObj) ->
     end.
 
 %% Really sophisticated selection algorithm
--spec pick_winner(pid(), kz_json:objects(), queue_strategy(), kz_term:api_binary()) ->
+-spec pick_winner(pid(), kz_json:objects(), queue_strategy(), kz_term:ne_binaries()) ->
                          'undefined' |
                          {kz_json:objects(), kz_json:objects()}.
 pick_winner(_, [], _, _) ->
     lager:debug("no agent responses are left to choose from"),
     'undefined';
-pick_winner(Mgr, CRs, 'rr', AgentId) ->
+pick_winner(_, _, _, []) ->
+    lager:debug("thangdd8 fix 022: no agent are left to choose from"),
+    'undefined';
+pick_winner(Mgr, CRs, 'rr', [AgentId|Agents]) ->
     case split_agents(AgentId, CRs) of
         {[], _O} ->
-            lager:debug("oops, agent ~s appears to have not responded; try again", [AgentId]),
-            pick_winner(Mgr, remove_unknown_agents(Mgr, CRs), 'rr', next_winner(Mgr));
+            lager:debug("thangdd8 fix 022: oops, agent ~s appears to have not responded; try again", [AgentId]),
+            pick_winner(Mgr, remove_unknown_agents(Mgr, CRs), 'rr', Agents);
         {Winners, OtherAgents} ->
-            lager:debug("found winning responders for agent: ~s", [AgentId]),
+            lager:debug("thangdd8 fix 022: found winning responders for agent: ~s", [AgentId]),
             {Winners, OtherAgents}
     end;
 pick_winner(_Mgr, CRs, 'mi', _) ->
