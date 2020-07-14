@@ -272,7 +272,7 @@ status(Srv) -> gen_listener:call(Srv, 'status').
 refresh(Mgr, QueueJObj) -> gen_listener:cast(Mgr, {'refresh', QueueJObj}).
 
 strategy(Srv) -> gen_listener:call(Srv, 'strategy').
-next_winner(Srv) -> gen_listener:call(Srv, 'next_winner').
+%next_winner(Srv) -> gen_listener:call(Srv, 'next_winner').
 
 agents_available(Srv) -> gen_listener:call(Srv, 'agents_available').
 
