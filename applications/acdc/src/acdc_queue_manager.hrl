@@ -7,6 +7,9 @@
 -type queue_strategy_state() :: queue:queue() | kz_term:ne_binaries().
 -type ss_details() :: {non_neg_integer(), 'busy' | 'undefined'}.
 -record(strategy_state, {agents :: queue_strategy_state() | 'undefined'
+                        ,skill1_agents :: queue_strategy_state() | 'undefined'
+                        ,skill2_agents :: queue_strategy_state() | 'undefined'
+                        ,skill3_agents :: queue_strategy_state() | 'undefined'
                                    %% details include # of agent processes and availability
                         ,details = dict:new() :: dict:dict(kz_term:ne_binary(), ss_details())
                         }).
