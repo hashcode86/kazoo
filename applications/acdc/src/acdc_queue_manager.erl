@@ -905,6 +905,7 @@ create_strategy_state('rr', #strategy_state{agents=AgentQ,skill1_agents=Skill1Ag
 create_strategy_state('mi', #strategy_state{agents='undefined'}=SS, AcctDb, QueueId, AgentsSkillJObj) ->
     create_strategy_state('mi', SS#strategy_state{agents=[]}, AcctDb, QueueId, AgentsSkillJObj);
 create_strategy_state('mi', #strategy_state{agents=AgentL}=SS, AcctDb, QueueId, AgentsSkillJObj) ->
+    lager:debug("thangdd8 fix 022: AgentsSkillJObj: ~p but not apply for MI strategy", [AgentsSkillJObj]),
     case kz_datamgr:get_results(AcctDb, <<"queues/agents_listing">>, [{key, QueueId}]) of
         {'ok', []} -> lager:debug("no agents around"), SS;
         {'ok', JObjs} ->
