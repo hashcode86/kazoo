@@ -318,12 +318,10 @@ init(Super, AccountId, QueueId, QueueJObj) ->
     Strategy = get_strategy(kz_json:get_value(<<"strategy">>, QueueJObj)),
     StrategyState = create_strategy_state(Strategy, AccountDb, QueueId, kz_json:get_list_value(<<"agents_skill">>, QueueJObj, [])),
     ConnectionTimeout = kz_json:get_integer_value(<<"connection_timeout">>, QueueJObj, 3600),
-    AgentsSkill = update_agents_skill_config(kz_json:get_list_value(<<"agents_skill">>, QueueJObj, [])),
 
     _ = update_strategy_state(self(), Strategy, StrategyState),
 
     lager:debug("thangdd8 fix 015: queue mgr started for ~s ,ConnectionTimeout: ~p", [QueueId, ConnectionTimeout]),
-    lager:debug("thangdd8 fix 022: Agents Skill Config: ~p", [dict:to_list(AgentsSkill)]),
 
     {'ok', update_properties(QueueJObj, #state{account_id=AccountId
                                               ,queue_id=QueueId
@@ -331,7 +329,6 @@ init(Super, AccountId, QueueId, QueueJObj) ->
                                               ,strategy=Strategy
                                               ,strategy_state=StrategyState
                                               ,connection_timeout=ConnectionTimeout
-                                              ,agents_skill=AgentsSkill
                                               })}.
 
 %%------------------------------------------------------------------------------
@@ -389,9 +386,9 @@ handle_call('next_winner', _, #state{strategy='rr'
     end;
 
 handle_call('current_agents', _, #state{strategy='rr'
-                                       ,strategy_state=#strategy_state{agents=Q}
+                                       ,strategy_state=#strategy_state{agents=Q,agents_skill2=Q2,agents_skill3=Q3}
                                        }=State) ->
-    {'reply', queue:to_list(Q), State};
+    {'reply', queue:to_list(queue_join(Q,Q2,Q3)), State};
 handle_call('current_agents', _, #state{strategy='mi'
                                        ,strategy_state=#strategy_state{agents=L}
                                        }=State) ->
@@ -743,15 +740,15 @@ pick_winner(_Mgr, CRs, 'mi', _) ->
 
 -spec update_strategy_with_agent(queue_strategy(), strategy_state(), kz_term:ne_binary(), 'add' | 'remove', 'busy' | 'undefined') ->
                                         strategy_state().
-update_strategy_with_agent('rr', #strategy_state{agents=AgentQueue}=SS, AgentId, 'add', Busy) ->
-    case queue:member(AgentId, AgentQueue) of
+update_strategy_with_agent('rr', #strategy_state{agents=Q1,agents_skill2=Q2,agents_skill3=Q3}=SS, AgentId, 'add', Busy) ->
+    case queue:member(AgentId, queue_join(Q1,Q2,Q3)) of
         'true' -> set_busy(AgentId, Busy, SS);
         'false' -> set_busy(AgentId, Busy, add_agent('rr', AgentId, SS))
     end;
 update_strategy_with_agent('rr', SS, AgentId, 'remove', 'busy') ->
     set_busy(AgentId, 'busy', SS);
-update_strategy_with_agent('rr', #strategy_state{agents=AgentQueue}=SS, AgentId, 'remove', Busy) ->
-    case queue:member(AgentId, AgentQueue) of
+update_strategy_with_agent('rr', #strategy_state{agents=AgentQueue,agents_skill2=Q2,agents_skill3=Q3}=SS, AgentId, 'remove', Busy) ->
+    case queue:member(AgentId, queue_join(AgentQueue,Q2,Q3)) of
         'false' -> set_busy(AgentId, Busy, SS);
         'true' -> set_busy(AgentId, Busy, remove_agent('rr', AgentId, SS))
     end;
@@ -769,12 +766,18 @@ update_strategy_with_agent('mi', #strategy_state{agents=AgentL}=SS, AgentId, 're
     end.
 
 -spec add_agent(queue_strategy(), kz_term:ne_binary(), strategy_state()) -> strategy_state().
-add_agent('rr', AgentId, #strategy_state{agents=AgentQueue
+add_agent('rr', AgentId, #strategy_state{agents=AgentQueue,agents_skill2=Q2,agents_skill3=Q3
                                         ,details=Details
+                                        ,skill2L=Skill2L,skill3L=Skill3L
                                         }=SS) ->
-    SS#strategy_state{agents=queue:in(AgentId, AgentQueue)
-                     ,details=incr_agent(AgentId, Details)
-                     };
+    case lists:member(AgentId, Skill3L) of
+        'true' -> SS#strategy_state{agents_skill3=queue:in(AgentId, Q3),details=incr_agent(AgentId, Details)};
+        'false' -> case lists:member(AgentId, Skill2L) of
+                       'true' -> SS#strategy_state{agents_skill2=queue:in(AgentId, Q2),details=incr_agent(AgentId, Details)};
+                       'false' -> SS#strategy_state{agents=queue:in(AgentId, AgentQueue),details=incr_agent(AgentId, Details)}
+                   end
+    end.
+
 add_agent('mi', AgentId, #strategy_state{agents=AgentL
                                         ,details=Details
                                         }=SS) ->
@@ -783,17 +786,16 @@ add_agent('mi', AgentId, #strategy_state{agents=AgentL
                      }.
 
 -spec remove_agent(queue_strategy(), kz_term:ne_binary(), strategy_state()) -> strategy_state().
-remove_agent('rr', AgentId, #strategy_state{agents=AgentQueue
+remove_agent('rr', AgentId, #strategy_state{agents=AgentQueue,agents_skill2=Q2,agents_skill3=Q3
                                            ,details=Details
                                            }=SS) ->
     case dict:find(AgentId, Details) of
         {'ok', {Count, _}} when Count > 1 ->
             SS#strategy_state{details=decr_agent(AgentId, Details)};
         _ ->
-            SS#strategy_state{agents=queue:filter(fun(AgentId1) when AgentId =:= AgentId1 -> 'false';
-                                                     (_) -> 'true' end
-                                                 ,AgentQueue
-                                                 )
+            SS#strategy_state{agents=queue:filter(fun(AgentId1) when AgentId =:= AgentId1 -> 'false';(_) -> 'true' end,AgentQueue)
+                             ,agents_skill2=queue:filter(fun(AgentId1) when AgentId =:= AgentId1 -> 'false';(_) -> 'true' end,Q2)
+                             ,agents_skill3=queue:filter(fun(AgentId1) when AgentId =:= AgentId1 -> 'false';(_) -> 'true' end,Q3)
                              ,details=decr_agent(AgentId, Details)
                              }
     end;
@@ -826,13 +828,28 @@ set_busy(AgentId, Busy, #strategy_state{details=Details}=SS) ->
     SS#strategy_state{details=dict:update(AgentId, fun({Count, _}) -> {Count, Busy} end, {0, Busy}, Details)}.
 
 maybe_update_strategy('mi', StrategyState, _AgentId) -> StrategyState;
-maybe_update_strategy('rr', #strategy_state{agents=AgentQueue}=SS, AgentId) ->
+maybe_update_strategy('rr', #strategy_state{agents=AgentQueue,agents_skill2=Q2,agents_skill3=Q3}=SS, AgentId) ->
     case queue:out(AgentQueue) of
         {{'value', AgentId}, AgentQueue1} ->
             lager:debug("agent ~s was front of queue, moving", [AgentId]),
             SS#strategy_state{agents=queue:in(AgentId, AgentQueue1)};
         _ -> SS
+    end,
+
+    case queue:out(Q2) of
+        {{'value', AgentId}, Q21} ->
+            lager:debug("thangdd8 fix 022: agent ~s was front of skill2 queue, moving", [AgentId]),
+            SS#strategy_state{agents_skill2=queue:in(AgentId, Q21)};
+        _ -> SS
+    end,
+
+    case queue:out(Q3) of
+        {{'value', AgentId}, Q31} ->
+            lager:debug("thangdd8 fix 022: agent ~s was front of skill3 queue, moving", [AgentId]),
+            SS#strategy_state{agents_skill3=queue:in(AgentId, Q31)};
+        _ -> SS
     end.
+
 
 %% If A's idle time is greater, it should come before B
 -spec sort_agent(kz_json:object(), kz_json:object()) -> boolean().
@@ -867,45 +884,44 @@ get_strategy(<<"most_idle">>) -> 'mi';
 get_strategy(_) -> 'rr'.
 
 -spec create_strategy_state(queue_strategy(), kz_term:ne_binary(), kz_term:ne_binary(), [kz_term:ne_binary()]) -> strategy_state().
-create_strategy_state(Strategy, AcctDb, QueueId, AgentsSkillJObj) ->
-    create_strategy_state(Strategy, #strategy_state{}, AcctDb, QueueId, AgentsSkillJObj).
+create_strategy_state(Strategy, AcctDb, QueueId, QueueJObj) ->
+    create_strategy_state(Strategy, #strategy_state{}, AcctDb, QueueId, QueueJObj).
 
 -spec create_strategy_state(queue_strategy(), strategy_state(), kz_term:ne_binary(), kz_term:ne_binary(), [kz_term:ne_binary()]) -> strategy_state().
-create_strategy_state('rr', #strategy_state{agents='undefined'}=SS, AcctDb, QueueId, AgentsSkillJObj) ->
-    create_strategy_state('rr', SS#strategy_state{agents=queue:new(),skill1_agents=queue:new(),skill2_agents=queue:new(),skill3_agents=queue:new()}, AcctDb, QueueId, AgentsSkillJObj);
-create_strategy_state('rr', #strategy_state{agents=AgentQ,skill1_agents=Skill1AgentQ,skill2_agents=Skill2AgentQ,skill3_agents=Skill3AgentQ}=SS, AcctDb, QueueId, AgentsSkillJObj) ->
+create_strategy_state('rr', #strategy_state{agents='undefined'}=SS, AcctDb, QueueId, QueueJObj) ->
+    create_strategy_state('rr', SS#strategy_state{agents=queue:new(),agents_skill2=queue:new(),agents_skill3=queue:new()}, AcctDb, QueueId, QueueJObj);
+create_strategy_state('rr', #strategy_state{agents=AgentQ,agents_skill2=AgentSkill2Q,agents_skill3=AgentSkill3Q}=SS, AcctDb, QueueId, QueueJObj) ->
     case kz_datamgr:get_results(AcctDb, <<"queues/agents_listing">>, [{'key', QueueId}]) of
         {'ok', []} -> lager:debug("no agents around"), SS;
         {'ok', JObjs} ->
+            AgentsSkillJObj = kz_json:get_list_value(<<"agents_skill">>, QueueJObj, []),
 
             AgentL = lists:foldl(fun(JObj, Acc) -> [kz_doc:id(JObj) | Acc] end, [], JObjs),
 
-            Skill3AgentL = [Id || AgentSkill <- AgentsSkillJObj, lists:member((Id = kz_doc:id(AgentSkill)), AgentL), kz_json:get_integer_value([<<"skill">>], AgentSkill, 1) >= 3],
-            Skill2AgentL = [Id || AgentSkill <- AgentsSkillJObj, lists:member((Id = kz_doc:id(AgentSkill)), AgentL), kz_json:get_integer_value([<<"skill">>], AgentSkill, 1) == 2],
-            Skill1AgentL = [Agent || Agent <- AgentL, not lists:member(Agent, Skill2AgentL), not lists:member(Agent, Skill3AgentL)],
+            Skill3L = [Id || AgentSkill <- AgentsSkillJObj, lists:member((Id = kz_doc:id(AgentSkill)), AgentL), kz_json:get_integer_value([<<"skill">>], AgentSkill, 1) >= 3],
+            Skill2L = [Id || AgentSkill <- AgentsSkillJObj, lists:member((Id = kz_doc:id(AgentSkill)), AgentL), kz_json:get_integer_value([<<"skill">>], AgentSkill, 1) == 2, not lists:member(Id, Skill3L)],
+            Skill1L = [Id || Id <- AgentL, not lists:member(Id, Skill2L), not lists:member(Id, Skill3L)],
 
-            Q1 = queue:join(Skill1AgentQ, queue:from_list([Id || Id <- Skill1AgentL, not queue:member(Id, Skill1AgentQ), not queue:member(Id, AgentQ)])),
-            Q2 = queue:join(Skill2AgentQ, queue:from_list([Id || Id <- Skill2AgentL, not queue:member(Id, Skill2AgentQ), not queue:member(Id, AgentQ)])),
-            Q3 = queue:join(Skill3AgentQ, queue:from_list([Id || Id <- Skill3AgentL, not queue:member(Id, Skill3AgentQ), not queue:member(Id, AgentQ)])),
-            Q = queue:join(queue:join(queue:join(AgentQ, Q1),Q2),Q3),
+            Q = queue:join(AgentQ, queue:from_list(Skill1L)),
+            Q2 = queue:join(AgentSkill2Q, queue:from_list(Skill2L)),
+            Q3 = queue:join(AgentSkill3Q, queue:from_list(Skill3L)),
 
-            lager:debug("thangdd8 fix 022: Agents Skill_1: ~p", [queue:to_list(Q1)]),
+            lager:debug("thangdd8 fix 022: Agents Skill_1: ~p", [queue:to_list(Q)]),
             lager:debug("thangdd8 fix 022: Agents Skill_2: ~p", [queue:to_list(Q2)]),
             lager:debug("thangdd8 fix 022: Agents Skill_3: ~p", [queue:to_list(Q3)]),
-            lager:debug("thangdd8 fix 022: Agents LIST: ~p", [queue:to_list(Q)]),
 
             Details = lists:foldl(fun(JObj, Acc) ->
                                           dict:store(kz_doc:id(JObj), {1, 'undefined'}, Acc)
                                   end, dict:new(), JObjs),
-            SS#strategy_state{agents=Q,skill1_agents=Q1,skill2_agents=Q2,skill3_agents=Q3
+            SS#strategy_state{agents=Q,agents_skill2=Q2,agents_skill3=Q3
+                             ,skill2L=Skill2L,skill3L=Skill3L
                              ,details=Details
                              };
         {'error', _E} -> lager:debug("error creating strategy rr: ~p", [_E]), SS
     end;
-create_strategy_state('mi', #strategy_state{agents='undefined'}=SS, AcctDb, QueueId, AgentsSkillJObj) ->
-    create_strategy_state('mi', SS#strategy_state{agents=[]}, AcctDb, QueueId, AgentsSkillJObj);
-create_strategy_state('mi', #strategy_state{agents=AgentL}=SS, AcctDb, QueueId, AgentsSkillJObj) ->
-    lager:debug("thangdd8 fix 022: AgentsSkillJObj: ~p but not apply for MI strategy", [AgentsSkillJObj]),
+create_strategy_state('mi', #strategy_state{agents='undefined'}=SS, AcctDb, QueueId, QueueJObj) ->
+    create_strategy_state('mi', SS#strategy_state{agents=[]}, AcctDb, QueueId, QueueJObj);
+create_strategy_state('mi', #strategy_state{agents=AgentL}=SS, AcctDb, QueueId, _) ->
     case kz_datamgr:get_results(AcctDb, <<"queues/agents_listing">>, [{key, QueueId}]) of
         {'ok', []} -> lager:debug("no agents around"), SS;
         {'ok', JObjs} ->
@@ -925,8 +941,8 @@ create_strategy_state('mi', #strategy_state{agents=AgentL}=SS, AcctDb, QueueId, 
         {'error', _E} -> lager:debug("error creating strategy mi: ~p", [_E]), SS
     end.
 
-update_strategy_state(Srv, 'rr', #strategy_state{agents=AgentQueue}) ->
-    L = queue:to_list(AgentQueue),
+update_strategy_state(Srv, 'rr', #strategy_state{agents=AgentQueue,agents_skill2=Q2,agents_skill3=Q3}) ->
+    L = queue:to_list(queue_join(AgentQueue, Q2, Q3)),
     update_strategy_state(Srv, L);
 update_strategy_state(Srv, 'mi', #strategy_state{agents=AgentL}) ->
     update_strategy_state(Srv, AgentL).
@@ -947,9 +963,9 @@ call_position(CallId, [Call|Calls], Position) ->
     end.
 
 -spec ss_size(strategy_state(), 'free' | 'logged_in') -> integer().
-ss_size(#strategy_state{agents=Agents}, 'logged_in') ->
+ss_size(#strategy_state{agents=Agents,agents_skill2=Q2,agents_skill3=Q3}, 'logged_in') ->
     case queue:is_queue(Agents) of
-        'true' -> queue:len(Agents);
+        'true' -> queue:len(queue_join(Agents, Q2, Q3));
         'false' -> length(Agents)
     end;
 ss_size(#strategy_state{agents=Agents
@@ -961,8 +977,8 @@ ss_size(#strategy_state{agents=Agents
                             _ -> Count
                         end
                 end, 0, Agents);
-ss_size(#strategy_state{agents=Agents}=SS, 'free') ->
-    ss_size(SS#strategy_state{agents=queue:to_list(Agents)}, 'free').
+ss_size(#strategy_state{agents=Agents,agents_skill2=Q2,agents_skill3=Q3}=SS, 'free') ->
+    ss_size(SS#strategy_state{agents=queue:to_list(queue_join(Agents, Q2, Q3))}, 'free').
 
 maybe_start_queue_workers(QueueSup, AgentCount) ->
     WSup = acdc_queue_sup:workers_sup(QueueSup),
@@ -1056,9 +1072,7 @@ stuck_call_to_ignored_list(AccountId, QueueId, [CallId|CallIds], Dict) ->
     NewDict = dict:store(make_ignore_key(AccountId, QueueId, CallId), 'true', Dict),
     stuck_call_to_ignored_list(AccountId, QueueId, CallIds, NewDict).
 
--spec update_agents_skill_config([kz_term:ne_binary()]) -> dict:dict().
-update_agents_skill_config(AgentsSkillConfig) ->
-    lists:foldl(fun(JObj, Acc) ->
-        dict:store(kz_json:get_ne_binary_value([<<"id">>], JObj), kz_json:get_integer_value([<<"skill">>], JObj, 1), Acc)
-                          end, dict:new(), AgentsSkillConfig).
+-spec queue_join(queue:queue(), queue:queue(), queue:queue()) -> queue:queue().
+queue_join(Q1, Q2, Q3) ->
+    queue:join(queue:join(Q1,Q2),Q3).
 

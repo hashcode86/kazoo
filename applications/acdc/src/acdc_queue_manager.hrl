@@ -7,9 +7,10 @@
 -type queue_strategy_state() :: queue:queue() | kz_term:ne_binaries().
 -type ss_details() :: {non_neg_integer(), 'busy' | 'undefined'}.
 -record(strategy_state, {agents :: queue_strategy_state() | 'undefined'
-                        ,skill1_agents :: queue_strategy_state() | 'undefined'
-                        ,skill2_agents :: queue_strategy_state() | 'undefined'
-                        ,skill3_agents :: queue_strategy_state() | 'undefined'
+                        ,agents_skill2 :: queue_strategy_state() | 'undefined'
+                        ,agents_skill3 :: queue_strategy_state() | 'undefined'
+                        ,skill2L = kz_term:ne_binaries()
+                        ,skill3L = kz_term:ne_binaries()
                                    %% details include # of agent processes and availability
                         ,details = dict:new() :: dict:dict(kz_term:ne_binary(), ss_details())
                         }).
@@ -28,7 +29,6 @@
                ,announcements_config = [] :: kz_term:proplist()
                ,announcements_pids = #{} :: announcements_pids()
                ,connection_timeout :: pos_integer()
-               ,agents_skill = dict:new() :: dict:dict() % {AgentId, Skill}
                }).
 -type mgr_state() :: #state{}.
 
