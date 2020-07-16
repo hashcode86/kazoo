@@ -830,22 +830,22 @@ maybe_update_strategy('rr', #strategy_state{agents=AgentQueue,agents_skill2=Q2,a
         {{'value', AgentId}, AgentQueue1} ->
             lager:debug("agent ~s was front of queue, moving", [AgentId]),
             SS#strategy_state{agents=queue:in(AgentId, AgentQueue1)};
-        _ -> SS
-    end,
-
-    case queue:out(Q2) of
-        {{'value', AgentId2}, Q21} ->
-            lager:debug("thangdd8 fix 022: agent ~s was front of skill2 queue, moving", [AgentId2]),
-            SS#strategy_state{agents_skill2=queue:in(AgentId2, Q21)};
-        _ -> SS
-    end,
-
-    case queue:out(Q3) of
-        {{'value', AgentId3}, Q31} ->
-            lager:debug("thangdd8 fix 022: agent ~s was front of skill3 queue, moving", [AgentId3]),
-            SS#strategy_state{agents_skill3=queue:in(AgentId3, Q31)};
-        _ -> SS
+        _ ->
+            case queue:out(Q2) of
+                     {{'value', AgentId2}, Q21} ->
+                         lager:debug("thangdd8 fix 022: agent ~s was front of skill2 queue, moving", [AgentId2]),
+                         SS#strategy_state{agents_skill2=queue:in(AgentId2, Q21)};
+                     _ ->
+                         case queue:out(Q3) of
+                             {{'value', AgentId3}, Q31} ->
+                                 lager:debug("thangdd8 fix 022: agent ~s was front of skill3 queue, moving", [AgentId3]),
+                                 SS#strategy_state{agents_skill3=queue:in(AgentId3, Q31)};
+                             _ -> SS
+                         end
+                 end
     end.
+
+
 
 %% If A's idle time is greater, it should come before B
 -spec sort_agent(kz_json:object(), kz_json:object()) -> boolean().
