@@ -984,12 +984,26 @@ maybe_start_queue_workers(QueueSup, AgentCount) ->
     end.
 
 -spec update_properties(kz_json:object(), mgr_state()) -> mgr_state().
-update_properties(QueueJObj, State) ->
+update_properties(QueueJObj, #state{strategy_state=SS}=State) ->
     State#state{enter_when_empty=kz_json:is_true(<<"enter_when_empty">>, QueueJObj, 'true')
                ,moh=kz_json:get_ne_value(<<"moh">>, QueueJObj)
                ,announcements_config=announcements_config(QueueJObj)
                ,connection_timeout=kz_json:get_integer_value(<<"connection_timeout">>, QueueJObj, 3600)
+               ,strategy_state = update_agents_skill_config(QueueJObj, SS)
                }.
+
+-spec update_agents_skill_config(kz_json:object(), strategy_state()) -> strategy_state().
+update_agents_skill_config(QueueJObj, #strategy_state{}=SS) ->
+    QueueId = kz_doc:id(QueueJObj),
+
+    AgentsSkillJObj = kz_json:get_list_value(<<"agents_skill">>, QueueJObj, []),
+    Skill3L = [kz_doc:id(AgentSkill) || AgentSkill <- AgentsSkillJObj, kz_json:get_integer_value([<<"skill">>], AgentSkill, 1) >= 3],
+    Skill2L = [kz_doc:id(AgentSkill) || AgentSkill <- AgentsSkillJObj, kz_json:get_integer_value([<<"skill">>], AgentSkill, 1) == 2, not lists:member(kz_doc:id(AgentSkill), Skill3L)],
+
+    lager:debug("thangdd8 fix 022: Queue: ~p Agents Skill_2: ~p", [QueueId, Skill2L]),
+    lager:debug("thangdd8 fix 022: Queue: ~p Agents Skill_3: ~p", [QueueId, Skill3L]),
+
+    SS#strategy_state{skill2L=Skill2L,skill3L=Skill3L}.
 
 -spec announcements_config(kz_json:object()) -> kz_term:proplist().
 announcements_config(Config) ->
