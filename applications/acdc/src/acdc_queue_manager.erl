@@ -322,7 +322,6 @@ init(Super, AccountId, QueueId, QueueJObj) ->
     _ = update_strategy_state(self(), Strategy, StrategyState),
 
     lager:debug("thangdd8 fix 015: queue mgr started for ~s ,ConnectionTimeout: ~p", [QueueId, ConnectionTimeout]),
-
     {'ok', update_properties(QueueJObj, #state{account_id=AccountId
                                               ,queue_id=QueueId
                                               ,supervisor=Super
@@ -767,8 +766,7 @@ update_strategy_with_agent('mi', #strategy_state{agents=AgentL}=SS, AgentId, 're
 
 -spec add_agent(queue_strategy(), kz_term:ne_binary(), strategy_state()) -> strategy_state().
 add_agent('rr', AgentId, #strategy_state{agents=AgentQueue,agents_skill2=Q2,agents_skill3=Q3
-                                        ,details=Details
-                                        ,skill2L=Skill2L,skill3L=Skill3L
+                                        ,details=Details,skill2L=Skill2L,skill3L=Skill3L
                                         }=SS) ->
     case lists:member(AgentId, Skill3L) of
         'true' -> SS#strategy_state{agents_skill3=queue:in(AgentId, Q3),details=incr_agent(AgentId, Details)};
@@ -776,8 +774,7 @@ add_agent('rr', AgentId, #strategy_state{agents=AgentQueue,agents_skill2=Q2,agen
                        'true' -> SS#strategy_state{agents_skill2=queue:in(AgentId, Q2),details=incr_agent(AgentId, Details)};
                        'false' -> SS#strategy_state{agents=queue:in(AgentId, AgentQueue),details=incr_agent(AgentId, Details)}
                    end
-    end.
-
+    end;
 add_agent('mi', AgentId, #strategy_state{agents=AgentL
                                         ,details=Details
                                         }=SS) ->
@@ -849,7 +846,6 @@ maybe_update_strategy('rr', #strategy_state{agents=AgentQueue,agents_skill2=Q2,a
             SS#strategy_state{agents_skill3=queue:in(AgentId, Q31)};
         _ -> SS
     end.
-
 
 %% If A's idle time is greater, it should come before B
 -spec sort_agent(kz_json:object(), kz_json:object()) -> boolean().
