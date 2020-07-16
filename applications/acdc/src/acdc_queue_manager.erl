@@ -316,7 +316,7 @@ init(Super, AccountId, QueueId, QueueJObj) ->
 
     gen_listener:cast(self(), {'start_workers'}),
     Strategy = get_strategy(kz_json:get_value(<<"strategy">>, QueueJObj)),
-    StrategyState = create_strategy_state(Strategy, AccountDb, QueueId, kz_json:get_list_value(<<"agents_skill">>, QueueJObj, [])),
+    StrategyState = create_strategy_state(Strategy, AccountDb, QueueId, QueueJObj),
     ConnectionTimeout = kz_json:get_integer_value(<<"connection_timeout">>, QueueJObj, 3600),
 
     _ = update_strategy_state(self(), Strategy, StrategyState),
@@ -879,11 +879,11 @@ get_strategy(<<"round_robin">>) -> 'rr';
 get_strategy(<<"most_idle">>) -> 'mi';
 get_strategy(_) -> 'rr'.
 
--spec create_strategy_state(queue_strategy(), kz_term:ne_binary(), kz_term:ne_binary(), [kz_term:ne_binary()]) -> strategy_state().
+-spec create_strategy_state(queue_strategy(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> strategy_state().
 create_strategy_state(Strategy, AcctDb, QueueId, QueueJObj) ->
     create_strategy_state(Strategy, #strategy_state{}, AcctDb, QueueId, QueueJObj).
 
--spec create_strategy_state(queue_strategy(), strategy_state(), kz_term:ne_binary(), kz_term:ne_binary(), [kz_term:ne_binary()]) -> strategy_state().
+-spec create_strategy_state(queue_strategy(), strategy_state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> strategy_state().
 create_strategy_state('rr', #strategy_state{agents='undefined'}=SS, AcctDb, QueueId, QueueJObj) ->
     create_strategy_state('rr', SS#strategy_state{agents=queue:new(),agents_skill2=queue:new(),agents_skill3=queue:new()}, AcctDb, QueueId, QueueJObj);
 create_strategy_state('rr', #strategy_state{agents=AgentQ,agents_skill2=AgentSkill2Q,agents_skill3=AgentSkill3Q}=SS, AcctDb, QueueId, QueueJObj) ->
