@@ -834,16 +834,16 @@ maybe_update_strategy('rr', #strategy_state{agents=AgentQueue,agents_skill2=Q2,a
     end,
 
     case queue:out(Q2) of
-        {{'value', AgentId}, Q21} ->
-            lager:debug("thangdd8 fix 022: agent ~s was front of skill2 queue, moving", [AgentId]),
-            SS#strategy_state{agents_skill2=queue:in(AgentId, Q21)};
+        {{'value', AgentId2}, Q21} ->
+            lager:debug("thangdd8 fix 022: agent ~s was front of skill2 queue, moving", [AgentId2]),
+            SS#strategy_state{agents_skill2=queue:in(AgentId2, Q21)};
         _ -> SS
     end,
 
     case queue:out(Q3) of
-        {{'value', AgentId}, Q31} ->
-            lager:debug("thangdd8 fix 022: agent ~s was front of skill3 queue, moving", [AgentId]),
-            SS#strategy_state{agents_skill3=queue:in(AgentId, Q31)};
+        {{'value', AgentId3}, Q31} ->
+            lager:debug("thangdd8 fix 022: agent ~s was front of skill3 queue, moving", [AgentId3]),
+            SS#strategy_state{agents_skill3=queue:in(AgentId3, Q31)};
         _ -> SS
     end.
 
