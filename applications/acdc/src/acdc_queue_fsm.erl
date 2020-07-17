@@ -791,7 +791,7 @@ maybe_delay_connect_req(Call, CallJObj, Delivery, #state{queue_proc=QueueSrv
                                                      ,connection_timer_ref=start_connection_timer(ConnTimeout)
                                                      }};
         'false' ->
-            lager:debug("thangdd8 fix 020: connect_req delayed (not up next)"),
+            lager:debug("thangdd8 fix 020_1: connect_req delayed (not up next)"),
             _ = timer:apply_after(2000, 'gen_statem', 'cast', [self(), {'member_call', CallJObj, Delivery}]),
             {'next_state', 'ready', State}
     end.
@@ -829,8 +829,8 @@ maybe_delay_connect_re_req(MgrSrv, ListenerSrv, #state{member_call=Call}=State) 
             acdc_queue_listener:member_connect_re_req(ListenerSrv),
             {'next_state', 'connect_req', State#state{collect_ref=start_collect_timer()}};
         'false' ->
-            lager:debug("connect_re_req delayed (not up next)"),
-            Ref = erlang:send_after(1000, self(), {'timeout', 'undefined', ?COLLECT_RESP_MESSAGE}),
+            lager:debug("thangdd8 fix 020_2: connect_re_req delayed (not up next)"),
+            Ref = erlang:send_after(2000, self(), {'timeout', 'undefined', ?COLLECT_RESP_MESSAGE}),
             {'next_state', 'connect_req', State#state{collect_ref='undefined', timeout_timer_ref = Ref}}
     end.
 

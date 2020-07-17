@@ -740,7 +740,7 @@ pick_winner(_, [], _, _) ->
 pick_winner(Mgr, CRs, 'rr', AgentId) ->
     case split_agents(AgentId, CRs) of
         {[], _O} ->
-            lager:debug("oops, agent ~s appears to have not responded; try again", [AgentId]),
+            %% lager:debug("oops, agent ~s appears to have not responded; try again", [AgentId]),
             pick_winner(Mgr, remove_unknown_agents(Mgr, CRs), 'rr', next_winner(Mgr));
         {Winners, OtherAgents} ->
             lager:debug("found winning responders for agent: ~s", [AgentId]),
