@@ -77,6 +77,7 @@ call_waiting(AccountId, QueueId, CallId, CallerIdName, CallerIdNumber, CallerPri
              ,{<<"Caller-ID-Name">>, CallerIdName}
              ,{<<"Caller-ID-Number">>, CallerIdNumber}
              ,{<<"Entered-Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Caller-Priority">>, CallerPriority}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
@@ -91,6 +92,7 @@ call_abandoned(AccountId, QueueId, CallId, Reason) ->
              ,{<<"Call-ID">>, CallId}
              ,{<<"Abandon-Reason">>, Reason}
              ,{<<"Abandon-Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
     call_state_change(AccountId, 'abandoned', Prop),
@@ -104,6 +106,7 @@ call_handled(AccountId, QueueId, CallId, AgentId) ->
              ,{<<"Call-ID">>, CallId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Handled-Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
     call_state_change(AccountId, 'handled', Prop),
@@ -118,6 +121,7 @@ call_missed(AccountId, QueueId, AgentId, CallId, ErrReason) ->
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Miss-Reason">>, ErrReason}
              ,{<<"Miss-Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
     call_state_change(AccountId, 'missed', Prop),
@@ -131,6 +135,7 @@ call_processed(AccountId, QueueId, AgentId, CallId, Initiator) ->
              ,{<<"Call-ID">>, CallId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Processed-Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Hung-Up-By">>, Initiator}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
@@ -143,6 +148,7 @@ agent_ready(AcctId, AgentId) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"ready">>}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
@@ -154,6 +160,7 @@ agent_logged_in(AcctId, AgentId) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"logged_in">>}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
@@ -165,6 +172,7 @@ agent_logged_out(AcctId, AgentId) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"logged_out">>}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
              ]),
@@ -180,6 +188,7 @@ agent_connecting(AcctId, AgentId, CallId, CallerIDName, CallerIDNumber) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"connecting">>}
              ,{<<"Call-ID">>, CallId}
              ,{<<"Caller-ID-Name">>, CallerIDName}
@@ -198,6 +207,7 @@ agent_connected(AcctId, AgentId, CallId, CallerIDName, CallerIDNumber) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"connected">>}
              ,{<<"Call-ID">>, CallId}
              ,{<<"Caller-ID-Name">>, CallerIDName}
@@ -212,6 +222,7 @@ agent_wrapup(AcctId, AgentId, WaitTime) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"wrapup">>}
              ,{<<"Wait-Time">>, WaitTime}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
@@ -226,6 +237,7 @@ agent_paused(AcctId, AgentId, PauseTime) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"paused">>}
              ,{<<"Pause-Time">>, PauseTime}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
@@ -238,6 +250,7 @@ agent_outbound(AcctId, AgentId, CallId) ->
              [{<<"Account-ID">>, AcctId}
              ,{<<"Agent-ID">>, AgentId}
              ,{<<"Timestamp">>, kz_time:now_s()}
+             ,{<<"Milliseconds">>, kz_time:now_ms()}
              ,{<<"Status">>, <<"outbound">>}
              ,{<<"Call-ID">>, CallId}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
