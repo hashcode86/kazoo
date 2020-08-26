@@ -80,7 +80,7 @@
 
 -include("acdc.hrl").
 
--define(CALL_REQ_HEADERS, [<<"Call-ID">>, <<"Account-ID">>, <<"Queue-ID">>]).
+-define(CALL_REQ_HEADERS, [<<"Call-ID">>, <<"Account-ID">>, <<"Queue-ID">>, <<"Timestamp-Milliseconds">>]).
 -define(CALL_REQ_VALUES(Name), [{<<"Event-Category">>, <<"acdc_call_stat">>}
                                ,{<<"Event-Name">>, Name}
                                ]).
@@ -438,7 +438,7 @@ status_resp_v(Prop) when is_list(Prop) ->
 status_resp_v(JObj) ->
     status_resp_v(kz_json:to_proplist(JObj)).
 
--define(STATUS_HEADERS, [<<"Account-ID">>, <<"Agent-ID">>, <<"Timestamp">>]).
+-define(STATUS_HEADERS, [<<"Account-ID">>, <<"Agent-ID">>, <<"Timestamp">>, <<"Timestamp-Milliseconds">>]).
 -define(STATUS_OPTIONAL_HEADERS, [<<"Wait-Time">>, <<"Pause-Time">>, <<"Call-ID">>
                                  ,<<"Caller-ID-Name">>, <<"Caller-ID-Number">>
                                  ,<<"Queue-ID">>
