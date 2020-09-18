@@ -74,6 +74,9 @@
 
          %% skeleton notification
         ,skel/1, skel_v/1
+
+         %% Custom notification
+        ,call_entered_menu/1, call_entered_menu_v/1
         ]).
 
 -export([%% Account notifications
@@ -133,6 +136,9 @@
 
          %% skeleton notification
         ,publish_skel/1, publish_skel/2
+
+         %% Custom notification
+        ,publish_call_entered_menu/1 ,publish_call_entered_menu/2
         ]).
 
 -include_lib("amqp_util.hrl").
@@ -1170,6 +1176,39 @@ webhook_disabled_definition() ->
                     ,types = []
                     }.
 
+%%------------------------------------------------------------------------------
+%% @doc ...
+%% @end
+%%------------------------------------------------------------------------------
+-spec call_entered_menu_definition() -> kapi_definition:api().
+call_entered_menu_definition() ->
+    #kapi_definition{name = <<"call_entered_menu">>
+        ,friendly_name = <<"Call Entered Menu">>
+        ,description = <<"This event is triggered when an corresponding missed call action in a callflow is invoked">>
+        ,build_fun = fun call_entered_menu/1
+        ,validate_fun = fun call_entered_menu_v/1
+        ,publish_fun = fun publish_call_entered_menu/1
+        ,binding = ?BINDING_STRING(<<"call">>, <<"call_entered_menu">>)
+        ,restrict_to = 'call_entered_menu'
+        ,required_headers = [<<"Account-ID">>
+            ,<<"Call-ID">>
+            ,<<"Menu-ID">>
+        ]
+        ,optional_headers = [<<"Caller-ID-Name">>
+            ,<<"Caller-ID-Number">>
+            ,<<"From-Realm">>
+            ,<<"From-User">>
+            ,<<"Notify">>
+            ,<<"To">>
+            ,<<"To-Realm">>
+            ,<<"To-User">>
+            ,<<"Timestamp">>
+            | ?DEFAULT_OPTIONAL_HEADERS
+        ]
+        ,values = ?NOTIFY_VALUES(<<"call_entered_menu">>)
+        ,types = []
+    }.
+
 %%%=============================================================================
 %%% API
 %%%=============================================================================
@@ -1216,6 +1255,7 @@ api_definitions() ->
     ,voicemail_saved_definition()
     ,webhook_definition()
     ,webhook_disabled_definition()
+    ,call_entered_menu_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -1299,7 +1339,9 @@ api_definition(<<"voicemail_saved">>) ->
 api_definition(<<"webhook">>) ->
     webhook_definition();
 api_definition(<<"webhook_disabled">>) ->
-    webhook_disabled_definition().
+    webhook_disabled_definition();
+api_definition(<<"call_entered_menu">>) ->
+    call_entered_menu_definition().
 
 %%------------------------------------------------------------------------------
 %% @doc Bind to a queue to this API exchange and events.
@@ -2429,4 +2471,28 @@ publish_webhook_disabled(API, ContentType) ->
                     ,values = Values
                     } = webhook_disabled_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API, Values, fun webhook_disabled/1),
+    amqp_util:notifications_publish(Binding, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc ...
+%% @end
+%%------------------------------------------------------------------------------
+-spec call_entered_menu(kz_term:api_terms()) -> api_formatter_return().
+call_entered_menu(Prop) ->
+    build_message(Prop, call_entered_menu_definition()).
+
+-spec call_entered_menu_v(kz_term:api_terms()) -> boolean().
+call_entered_menu_v(Prop) ->
+    validate(Prop, call_entered_menu_definition()).
+
+-spec publish_call_entered_menu(kz_term:api_terms()) -> 'ok'.
+publish_call_entered_menu(JObj) ->
+    publish_call_entered_menu(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_call_entered_menu(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_call_entered_menu(API, ContentType) ->
+    #kapi_definition{binding = Binding
+        ,values = Values
+    } = call_entered_menu_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API, Values, fun call_entered_menu/1),
     amqp_util:notifications_publish(Binding, Payload, ContentType).
