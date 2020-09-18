@@ -484,7 +484,7 @@ update_doc(Updates, Id, Call) ->
 get_menu_profile(Data, Call) ->
     Id = kz_json:get_ne_binary_value(<<"id">>, Data),
     AccountDb = kapps_call:account_db(Call),
-    send_call_entered_menu_alert(Call, Id),
+    send_entered_menu_alert(Call, Id),
     case kz_datamgr:open_doc(AccountDb, Id) of
         {'ok', JObj} ->
             lager:info("loaded menu route ~s", [Id]),
@@ -531,15 +531,16 @@ get_menu_profile(Data, Call) ->
             #cf_menu_data{}
     end.
 
--spec send_call_entered_menu_alert(kapps_call:call(), kz_term:api_ne_binaries()) -> 'ok'.
-send_call_entered_menu_alert(Call, MenuId) ->
-    lager:debug("trying to publish call_entered_menu_alert for call-id ~s", [kapps_call:call_id_direct(Call)]),
+-spec send_entered_menu_alert(kapps_call:call(), kz_term:api_ne_binaries()) -> 'ok'.
+send_entered_menu_alert(Call, MenuId) ->
+    lager:debug("trying to publish entered_menu_alert for call-id ~s", [kapps_call:call_id_direct(Call)]),
     Props = props:filter_undefined(
         [{<<"Account-ID">>, kapps_call:account_id(Call)}
-            ,{<<"Timestamp">>, kz_time:now_s()}
             ,{<<"Call-ID">>, kapps_call:call_id_direct(Call)}
             ,{<<"Menu-ID">>, MenuId}
+            ,{<<"Timestamp">>, kz_time:now_s()}
+            ,{<<"Timestamp-Milliseconds">>, kz_time:now_ms()}
             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
         ]
     ),
-    kapps_notify_publisher:cast(Props, fun kapi_notifications:publish_call_entered_menu/1).
+    kapps_notify_publisher:cast(Props, fun kapi_notifications:publish_entered_menu/1).
