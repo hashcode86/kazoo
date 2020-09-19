@@ -76,7 +76,7 @@
         ,skel/1, skel_v/1
 
          %% Custom notification
-        ,entered_menu/1, entered_menu_v/1
+        ,enter_menu/1, enter_menu_v/1
         ]).
 
 -export([%% Account notifications
@@ -138,7 +138,7 @@
         ,publish_skel/1, publish_skel/2
 
          %% Custom notification
-        ,publish_entered_menu/1 ,publish_entered_menu/2
+        ,publish_enter_menu/1 ,publish_enter_menu/2
         ]).
 
 -include_lib("amqp_util.hrl").
@@ -1180,16 +1180,16 @@ webhook_disabled_definition() ->
 %% @doc ...
 %% @end
 %%------------------------------------------------------------------------------
--spec entered_menu_definition() -> kapi_definition:api().
-entered_menu_definition() ->
-    #kapi_definition{name = <<"entered_menu">>
-        ,friendly_name = <<"Call Entered Menu">>
-        ,description = <<"This event is triggered when an corresponding missed call action in a callflow is invoked">>
-        ,build_fun = fun entered_menu/1
-        ,validate_fun = fun entered_menu_v/1
-        ,publish_fun = fun publish_entered_menu/1
-        ,binding = ?BINDING_STRING(<<"call">>, <<"entered_menu">>)
-        ,restrict_to = 'entered_menu'
+-spec enter_menu_definition() -> kapi_definition:api().
+enter_menu_definition() ->
+    #kapi_definition{name = <<"enter_menu">>
+        ,friendly_name = <<"Call Enter A Menu">>
+        ,description = <<"This event is triggered when the call enter a callflow menu">>
+        ,build_fun = fun enter_menu/1
+        ,validate_fun = fun enter_menu_v/1
+        ,publish_fun = fun publish_enter_menu/1
+        ,binding = ?BINDING_STRING(<<"call">>, <<"enter_menu">>)
+        ,restrict_to = 'enter_menu'
         ,required_headers = [<<"Account-ID">>
             ,<<"Call-ID">>
             ,<<"Menu-ID">>
@@ -1197,7 +1197,7 @@ entered_menu_definition() ->
             ,<<"Timestamp-Milliseconds">>
         ]
         ,optional_headers  = ?DEFAULT_OPTIONAL_HEADERS
-        ,values = ?NOTIFY_VALUES(<<"entered_menu">>)
+        ,values = ?NOTIFY_VALUES(<<"enter_menu">>)
         ,types = []
     }.
 
@@ -1247,7 +1247,7 @@ api_definitions() ->
     ,voicemail_saved_definition()
     ,webhook_definition()
     ,webhook_disabled_definition()
-    ,entered_menu_definition()
+    ,enter_menu_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -1332,8 +1332,8 @@ api_definition(<<"webhook">>) ->
     webhook_definition();
 api_definition(<<"webhook_disabled">>) ->
     webhook_disabled_definition();
-api_definition(<<"entered_menu">>) ->
-    entered_menu_definition().
+api_definition(<<"enter_menu">>) ->
+    enter_menu_definition().
 
 %%------------------------------------------------------------------------------
 %% @doc Bind to a queue to this API exchange and events.
@@ -2469,22 +2469,22 @@ publish_webhook_disabled(API, ContentType) ->
 %% @doc ...
 %% @end
 %%------------------------------------------------------------------------------
--spec entered_menu(kz_term:api_terms()) -> api_formatter_return().
-entered_menu(Prop) ->
-    build_message(Prop, entered_menu_definition()).
+-spec enter_menu(kz_term:api_terms()) -> api_formatter_return().
+enter_menu(Prop) ->
+    build_message(Prop, enter_menu_definition()).
 
--spec entered_menu_v(kz_term:api_terms()) -> boolean().
-entered_menu_v(Prop) ->
-    validate(Prop, entered_menu_definition()).
+-spec enter_menu_v(kz_term:api_terms()) -> boolean().
+enter_menu_v(Prop) ->
+    validate(Prop, enter_menu_definition()).
 
--spec publish_entered_menu(kz_term:api_terms()) -> 'ok'.
-publish_entered_menu(JObj) ->
-    publish_entered_menu(JObj, ?DEFAULT_CONTENT_TYPE).
+-spec publish_enter_menu(kz_term:api_terms()) -> 'ok'.
+publish_enter_menu(JObj) ->
+    publish_enter_menu(JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_entered_menu(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_entered_menu(API, ContentType) ->
+-spec publish_enter_menu(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_enter_menu(API, ContentType) ->
     #kapi_definition{binding = Binding
         ,values = Values
-    } = entered_menu_definition(),
-    {'ok', Payload} = kz_api:prepare_api_payload(API, Values, fun entered_menu/1),
+    } = enter_menu_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API, Values, fun enter_menu/1),
     amqp_util:notifications_publish(Binding, Payload, ContentType).
