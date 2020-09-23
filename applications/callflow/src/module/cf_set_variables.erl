@@ -44,7 +44,7 @@ get_custom_channel_vars(Data) ->
 -spec set_variables(boolean(), kz_json:object(), kapps_call:call()) -> 'ok'.
 set_variables('true', JObj, Call) ->
     lager:debug("exporting custom app vars: ~p", [JObj]),
-    kapps_call_command:set('undefined', 'undefined', JObj, Call);
+    kapps_call_command:set(JObj, 'undefined', JObj, Call);
 set_variables('false', JObj, Call) ->
     lager:debug("setting custom app vars: ~p", [JObj]),
-    kapps_call_command:set('undefined', 'undefined', JObj, Call).
+    kapps_call_command:set(JObj, 'undefined', JObj, Call).
