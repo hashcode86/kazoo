@@ -1680,7 +1680,6 @@
                     "description": "specifies where the variable is defined",
                     "enum": [
                         "account",
-                        "custom_application_vars",
                         "custom_channel_vars",
                         "device",
                         "merged",

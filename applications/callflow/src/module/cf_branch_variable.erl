@@ -60,9 +60,6 @@ maybe_branch_to_named_child(ChildName, Call) ->
 find_child_in_scope(_Scope, 'undefined', _Call) ->
     lager:warning("no variable is specified"),
     'undefined';
-find_child_in_scope(<<"custom_application_vars">>, Variable, Call) ->
-    ChildName = kz_json:get_ne_value(Variable, kz_json:normalize(kapps_call:custom_application_vars(Call))),
-    find_child_in_branch(ChildName, Call);
 find_child_in_scope(<<"custom_channel_vars">>, Variable, Call) ->
     ChildName = kz_json:get_ne_value(Variable, kz_json:normalize(kapps_call:custom_channel_vars(Call))),
     find_child_in_branch(ChildName, Call);
