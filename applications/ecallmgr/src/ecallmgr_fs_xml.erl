@@ -144,7 +144,10 @@ reverse_authn_resp_xml(<<"password">>, JObj) ->
     PassEl = param_el(<<"reverse-auth-pass">>, kz_json:get_value(<<"Auth-Password">>, JObj)),
     UserEl = param_el(<<"reverse-auth-user">>, kz_json:get_value(<<"Auth-Username">>, JObj, UserId)),
 
-    ParamsEl = params_el([PassE0, PassEl, UserEl]),
+    Verto0 = param_el(<<"jsonrpc-allowed-methods">>, <<"verto">>),
+    Verto1 = param_el(<<"jsonrpc-allowed-event-channels">>, <<"demo,conference,presence">>),
+
+    ParamsEl = params_el([PassE0, PassEl, UserEl, Verto0, Verto1]),
 
     VariableEls = [variable_el(K, V) || {K, V} <- get_channel_params(JObj)],
     VariablesEl = variables_el(VariableEls),
