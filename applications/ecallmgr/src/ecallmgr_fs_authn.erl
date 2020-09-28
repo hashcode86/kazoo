@@ -147,7 +147,7 @@ code_change(_OldVsn, State, _Extra) ->
 -spec handle_directory_lookup(kz_term:ne_binary(), kz_term:proplist(), atom()) -> fs_handlecall_ret().
 handle_directory_lookup(Id, Props, Node) ->
     kz_util:put_callid(Id),
-    lager:debug("received fetch request (~s) user directory from ~s", [Id, Node]),
+    lager:debug("received fetch request (~s) user directory from ~s, props: ~p", [Id, Node, Props]),
     case props:get_value(<<"action">>, Props, <<"sip_auth">>) of
         <<"reverse-auth-lookup">> -> lookup_user(Node, Id, <<"reverse-lookup">>, Props);
         <<"sip_auth">> -> maybe_sip_auth_response(Id, Props, Node);
