@@ -140,10 +140,11 @@ reverse_authn_resp_xml(JObj) ->
 reverse_authn_resp_xml(<<"password">>, JObj) ->
     UserId = kz_json:get_value(<<"User-ID">>, JObj),
 
+    PassE0 = param_el(<<"password">>, kz_json:get_value(<<"Auth-Password">>, JObj)),
     PassEl = param_el(<<"reverse-auth-pass">>, kz_json:get_value(<<"Auth-Password">>, JObj)),
     UserEl = param_el(<<"reverse-auth-user">>, kz_json:get_value(<<"Auth-Username">>, JObj, UserId)),
 
-    ParamsEl = params_el([PassEl, UserEl]),
+    ParamsEl = params_el([PassE0, PassEl, UserEl]),
 
     VariableEls = [variable_el(K, V) || {K, V} <- get_channel_params(JObj)],
     VariablesEl = variables_el(VariableEls),
