@@ -25,6 +25,7 @@
                ,announcements_config = [] :: kz_term:proplist()
                ,announcements_pids = #{} :: announcements_pids()
                ,connection_timeout :: pos_integer()
+               ,max_priority :: pos_integer()
                }).
 -type mgr_state() :: #state{}.
 

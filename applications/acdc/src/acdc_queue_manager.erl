@@ -318,16 +318,18 @@ init(Super, AccountId, QueueId, QueueJObj) ->
     Strategy = get_strategy(kz_json:get_value(<<"strategy">>, QueueJObj)),
     StrategyState = create_strategy_state(Strategy, AccountDb, QueueId),
     ConnectionTimeout = kz_json:get_integer_value(<<"connection_timeout">>, QueueJObj, 3600),
+    MaxPriority = kz_json:get_integer_value(<<"max_priority">>, QueueJObj, 1),
 
     _ = update_strategy_state(self(), Strategy, StrategyState),
 
-    lager:debug("thangdd8 fix 015: queue mgr started for ~s ,ConnectionTimeout: ~p", [QueueId, ConnectionTimeout]),
+    lager:debug("thangdd8 fix 026: queue mgr started for ~s ,ConnectionTimeout: ~p ,MaxPriority: ~p", [QueueId, ConnectionTimeout, MaxPriority]),
     {'ok', update_properties(QueueJObj, #state{account_id=AccountId
                                               ,queue_id=QueueId
                                               ,supervisor=Super
                                               ,strategy=Strategy
                                               ,strategy_state=StrategyState
                                               ,connection_timeout=ConnectionTimeout
+                                              ,max_priority=MaxPriority
                                               })}.
 
 %%------------------------------------------------------------------------------
@@ -548,10 +550,12 @@ handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
 
 handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                               ,queue_id=QueueId
+                                              ,supervisor=QueueSup
                                               ,current_member_calls=CurrentCalls
                                               ,announcements_config=AnnouncementsConfig
                                               ,announcements_pids=AnnouncementsPids
                                               ,connection_timeout=ConnectionTimeout
+                                              ,max_priority=MaxPriority
                                               ,ignored_member_calls=Dict
                                               }=State) ->
     StuckCalls = stuck_call_detect(ConnectionTimeout, CurrentCalls),
@@ -559,13 +563,18 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
         true -> lager:warning("thangdd8 fix 015: stuck calls found: ~p. I will remove it", [StuckCalls]);
         false -> 'ok'
     end,
-    NewCurrentCalls = stuck_call_remove(StuckCalls, CurrentCalls),
+    CurrentCalls2 = stuck_call_remove(StuckCalls, CurrentCalls),
     NewDict = stuck_call_to_ignored_list(AccountId, QueueId, StuckCalls, Dict),
 
-    Position = length(NewCurrentCalls)+1,
+    Position = length(CurrentCalls2)+1,
     Call = kapps_call:set_custom_channel_var(<<"Queue-Position">>
                                             ,Position
                                             ,kapps_call:from_json(kz_json:get_value(<<"Call">>, JObj))),
+
+    case MaxPriority > 1 of
+        true -> CurrentCalls3 = insert_call_to_list(QueueSup, Call, CurrentCalls2);
+        false -> CurrentCalls3 = [Call | CurrentCalls2]
+    end,
 
     'ok' = acdc_stats:call_waiting(AccountId, QueueId
                                   ,kapps_call:call_id(Call)
@@ -592,17 +601,20 @@ handle_cast({'add_queue_member', JObj}, #state{account_id=AccountId
                                  AnnouncementsPids#{CallId => Pid}
                          end,
 
-    {'noreply', State#state{current_member_calls=[Call | NewCurrentCalls]
+    {'noreply', State#state{current_member_calls=CurrentCalls3
                            ,announcements_pids=AnnouncementsPids1
                            ,ignored_member_calls=NewDict
                            }};
 
-handle_cast({'handle_queue_member_add', JObj}, #state{current_member_calls=CurrentCalls}=State) ->
+handle_cast({'handle_queue_member_add', JObj}, #state{queue_id=QueueId,supervisor=QueueSup,max_priority=MaxPriority,current_member_calls=CurrentCalls}=State) ->
     Call = kapps_call:from_json(kz_json:get_value(<<"Call">>, JObj)),
     CallId = kapps_call:call_id(Call),
-    lager:debug("received notification of new queue member ~s", [CallId]),
-
-    {'noreply', State#state{current_member_calls = [Call | lists:keydelete(CallId, 2, CurrentCalls)]}};
+    lager:debug("thangdd8 fix 026: Queue ~s received notification of new member ~s", [QueueId, CallId]),
+    case MaxPriority > 1 of
+        true -> Calls = insert_call_to_list(QueueSup, Call, CurrentCalls);
+        false -> Calls = [Call | lists:keydelete(CallId, 2, CurrentCalls)]
+    end,
+    {'noreply', State#state{current_member_calls = Calls}};
 
 handle_cast({'handle_queue_member_remove', CallId}, State) ->
     State1 = remove_queue_member(CallId, State),
@@ -1041,3 +1053,45 @@ stuck_call_to_ignored_list(_, _, [], Dict) ->
 stuck_call_to_ignored_list(AccountId, QueueId, [CallId|CallIds], Dict) ->
     NewDict = dict:store(make_ignore_key(AccountId, QueueId, CallId), 'true', Dict),
     stuck_call_to_ignored_list(AccountId, QueueId, CallIds, NewDict).
+
+-spec insert_call_to_list(strategy_state(), kapps_call:call(), [kapps_call:call()]) -> [kapps_call:call()].
+insert_call_to_list(QueueSup, Call, CurrentCalls) ->
+    CallId = kapps_call:call_id(Call),
+    CallPriority = kz_term:to_integer(kapps_call:custom_channel_var(<<"Call-Priority">>, <<"1">>, Call)),
+    case lists:keyfind(CallId, 2, CurrentCalls) of
+        'false' ->
+            lager:debug("thangdd8 fix 026: Insert call ~p (Priority: ~p) to list", [CallId, CallPriority]),
+            WSup = acdc_queue_sup:workers_sup(QueueSup),
+            WorkerCount = acdc_queue_workers_sup:worker_count(WSup),
+            CurrentLength = length(CurrentCalls),
+            case CurrentLength > WorkerCount of
+                'true' ->
+                    {Left, Right} = lists:split(CurrentLength - WorkerCount, CurrentCalls),
+                    Left2 = insert_by_call_priority(Call, Left),
+                    CurrentCalls2 = Left2 ++ Right;
+                'false' -> CurrentCalls2 = [Call|CurrentCalls]
+            end,
+            %% lager:debug("thangdd8 fix 026: Old list ~p", [[kapps_call:call_id(B) || B <- CurrentCalls]]),
+            %% lager:debug("thangdd8 fix 026: New list ~p", [[kapps_call:call_id(C) || C <- CurrentCalls2]]),
+            CurrentCalls2;
+        _ ->
+            CurrentCalls
+    end.
+
+-spec insert_by_call_priority(kapps_call:call(), [kapps_call:call()]) -> [kapps_call:call()].
+insert_by_call_priority(NewCall, Left) ->
+    insert_by_call_priority(NewCall, Left, []).
+
+-spec insert_by_call_priority(kapps_call:call(), [kapps_call:call()], [kapps_call:call()]) -> [kapps_call:call()].
+insert_by_call_priority(NewCall, [], NewLeft) ->
+    NewLeft ++ [NewCall];
+insert_by_call_priority(NewCall, [Call|Rest], NewLeft) ->
+    PriorityFromNewCall = kz_term:to_integer(kapps_call:custom_channel_var(<<"Call-Priority">>, <<"1">>, NewCall)),
+    PriorityFromCall = kz_term:to_integer(kapps_call:custom_channel_var(<<"Call-Priority">>, <<"1">>, Call)),
+
+    case PriorityFromNewCall > PriorityFromCall of
+        true -> insert_by_call_priority(NewCall, Rest, NewLeft ++ [Call]);
+        false ->
+            List = NewLeft ++ [NewCall | [Call|Rest]],
+            List
+    end.
