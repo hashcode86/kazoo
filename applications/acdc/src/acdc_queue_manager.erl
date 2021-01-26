@@ -443,6 +443,10 @@ handle_cast({'start_workers'}, #state{account_id=AccountId
             lager:debug("no agents yet, but create a worker anyway"),
             acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId);
         {'ok', Agents} ->
+            QWC = kapps_config:get_integer(?CONFIG_CAT, <<"queue_worker_count">>, 5),
+            lager:info("thangdd8 fix 025: Pre-create ~p queue_workers for queue ~p", [min(length(Agents), QWC), QueueId]),
+            acdc_queue_workers_sup:new_workers(WorkersSup, AccountId, QueueId, min(length(Agents), QWC)),
+
             _ = [start_agent_and_worker(WorkersSup, AccountId, QueueId
                                        ,kz_json:get_value(<<"doc">>, A)
                                        )
@@ -695,7 +699,8 @@ publish_queue_member_remove(AccountId, QueueId, CallId) ->
 
 -spec start_agent_and_worker(pid(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
 start_agent_and_worker(WorkersSup, AccountId, QueueId, AgentJObj) ->
-    acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId),
+    %acdc_queue_workers_sup:new_worker(WorkersSup, AccountId, QueueId),
+    lager:info("thangdd8 fix 025: No need create queue_worker for each agent, we use a limited amount of queue_worker (see system_config.acdc.queue_worker_count). WorkersSup ~p", [WorkersSup]),
     AgentId = kz_doc:id(AgentJObj),
     lager:info("thangdd8 fix 018: Load agent status ~s.~s ", [AccountId, AgentId]),
     %case acdc_agent_util:most_recent_status(AccountId, AgentId) of
@@ -944,9 +949,12 @@ ss_size(#strategy_state{agents=Agents}=SS, 'free') ->
 
 maybe_start_queue_workers(QueueSup, AgentCount) ->
     WSup = acdc_queue_sup:workers_sup(QueueSup),
+    QWC = kapps_config:get_integer(?CONFIG_CAT, <<"queue_worker_count">>, 5),
+    Min = min(AgentCount, QWC),
+
     case acdc_queue_workers_sup:worker_count(WSup) of
-        N when N >= AgentCount -> 'ok';
-        N when N < AgentCount -> gen_listener:cast(self(), {'start_worker', AgentCount-N})
+        N when N >= Min -> 'ok';
+        N when N < Min -> gen_listener:cast(self(), {'start_worker', Min-N})
     end.
 
 -spec update_properties(kz_json:object(), mgr_state()) -> mgr_state().
