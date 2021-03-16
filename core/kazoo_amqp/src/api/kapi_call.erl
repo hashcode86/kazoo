@@ -332,7 +332,8 @@ publish_event(Event) -> publish_event(Event, ?DEFAULT_CONTENT_TYPE).
 
 -spec publish_event(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_event(Event, ContentType) when is_list(Event) ->
-    CallId = props:get_first_defined([<<"Origination-Call-ID">>, <<"Call-ID">>, <<"Unique-ID">>], Event),
+    OriginationCallId = props:get_first_defined([<<"Origination-Call-ID">>, <<"Call-ID">>, <<"Unique-ID">>], Event),
+    CallId = props:get_first_defined([<<"Call-ID">>, <<"Origination-Call-ID">>, <<"Unique-ID">>], Event),
     EventName = props:get_value(<<"Event-Name">>, Event),
     {'ok', Payload} = kz_api:prepare_api_payload(Event
                                                 ,?CALL_EVENT_VALUES
@@ -340,7 +341,13 @@ publish_event(Event, ContentType) when is_list(Event) ->
                                                  ,{'remove_recursive', 'false'}
                                                  ]
                                                 ),
-    amqp_util:callevt_publish(?CALL_EVENT_ROUTING_KEY(EventName, CallId), Payload, ContentType);
+    amqp_util:callevt_publish(?CALL_EVENT_ROUTING_KEY(EventName, OriginationCallId), Payload, ContentType),
+    case OriginationCallId == CallId of
+        'true'  -> 'ok';
+        'false' ->
+            lager:debug("thangdd8 fix 027: publishing call event ~s with call_id: ~s (origination_call_id: ~s)", [EventName, CallId, OriginationCallId]),
+            amqp_util:callevt_publish(?CALL_EVENT_ROUTING_KEY(EventName, CallId), Payload, ContentType)
+    end;
 publish_event(Event, ContentType) ->
     publish_event(kz_json:to_proplist(Event), ContentType).
 
